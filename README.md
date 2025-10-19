@@ -37,29 +37,6 @@ pipx install "git+https://github.com/H4ch1Net/Nexus.git"
 nexus --help
 ```
 
-### From source (contributors)
-Windows (PowerShell):
-```powershell
-git clone https://github.com/H4ch1Net/Nexus.git
-cd Nexus
-py -3.12 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -e .
-nexus --help
-```
-
-Linux:
-```bash
-git clone https://github.com/H4ch1Net/Nexus.git
-cd Nexus
-python3.12 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-pip install -e .
-nexus --help
-```
-
 ## Usage
 
 Help:
