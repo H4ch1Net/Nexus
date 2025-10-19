@@ -16,7 +16,7 @@ pipx install nexus-tool
 nexus --help
 ```
 
-### Kali (pipx)
+### Debian-based (pipx)
 ```bash
 sudo apt update && sudo apt install -y pipx
 pipx ensurepath   # open a new shell after this
