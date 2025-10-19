@@ -20,8 +20,20 @@ def _hashes(path: Path) -> dict:
     return {"md5": md5.hexdigest(), "sha1": sha1.hexdigest(), "sha256": sha256.hexdigest()}
 
 
+def _to_str(x: Any) -> Optional[str]:
+    if x is None:
+        return None
+    if isinstance(x, bytes):
+        try:
+            return x.decode("utf-8", "ignore").strip("\x00").strip()
+        except Exception:
+            return None
+    if isinstance(x, str):
+        return x.strip()
+    return str(x)
+
+
 def _rational_to_float(x: Any) -> Optional[float]:
-    # PIL may return IFDRational or tuples
     try:
         return float(x)
     except Exception:
@@ -32,13 +44,14 @@ def _rational_to_float(x: Any) -> Optional[float]:
             return None
 
 
-def _dms_to_decimal(dms, ref: str) -> Optional[float]:
+def _dms_to_decimal(dms, ref: Any) -> Optional[float]:
     try:
         d = _rational_to_float(dms[0]) or 0.0
         m = _rational_to_float(dms[1]) or 0.0
         s = _rational_to_float(dms[2]) or 0.0
         val = d + (m / 60.0) + (s / 3600.0)
-        if ref in ("S", "W"):
+        ref_s = _to_str(ref) or ""
+        if ref_s.upper() in ("S", "W"):
             val = -val
         return val
     except Exception:
@@ -54,19 +67,20 @@ def _parse_exif_image(p: Path) -> tuple[Dict[str, Any], Optional[dict]]:
 
     try:
         with Image.open(p) as img:
-            exif = img.getexif()  # PIL Exif object
+            # Pillow ≥6: getexif(); older: _getexif()
+            exif = getattr(img, "getexif", None)
+            exif = exif() if callable(exif) else getattr(img, "_getexif", lambda: None)()
             if not exif:
                 return meta, gps_out
 
-            # Build reverse tag map once
             TAGS = ExifTags.TAGS
             GPSTAGS = ExifTags.GPSTAGS
 
-            # First pass: collect wanted fields by name
             wanted = {
                 "Make": "CameraMake",
                 "Model": "CameraModel",
                 "DateTimeOriginal": "DateTimeOriginal",
+                "OffsetTimeOriginal": "OffsetTimeOriginal",  # e.g. +02:00
                 "ExposureTime": "ExposureTime",
                 "FNumber": "FNumber",
                 "ISOSpeedRatings": "ISO",
@@ -77,9 +91,9 @@ def _parse_exif_image(p: Path) -> tuple[Dict[str, Any], Optional[dict]]:
             }
 
             gps_raw = None
-            for tag_id, value in exif.items():
+            for tag_id, value in dict(exif).items():
                 name = TAGS.get(tag_id, str(tag_id))
-                if name == "GPSInfo":
+                if name == "GPSInfo" and isinstance(value, dict):
                     gps_dict = {}
                     for k, v in value.items():
                         gps_name = GPSTAGS.get(k, str(k))
@@ -87,7 +101,6 @@ def _parse_exif_image(p: Path) -> tuple[Dict[str, Any], Optional[dict]]:
                     gps_raw = gps_dict
                 elif name in wanted:
                     key = wanted[name]
-                    # normalize some fields to plain types
                     if name in ("ExposureTime", "FNumber", "FocalLength"):
                         meta[key] = _rational_to_float(value)
                     elif name in ("ISOSpeedRatings", "PhotographicSensitivity"):
@@ -96,33 +109,55 @@ def _parse_exif_image(p: Path) -> tuple[Dict[str, Any], Optional[dict]]:
                         except Exception:
                             meta[key] = value
                     else:
-                        meta[key] = value
+                        s = _to_str(value)
+                        if s is not None:
+                            meta[key] = s
 
-            # Date format normalize (YYYY:MM:DD HH:MM:SS -> ISO 8601)
-            if "DateTimeOriginal" in meta and isinstance(meta["DateTimeOriginal"], str):
-                raw = meta["DateTimeOriginal"].strip()
+            # Normalize DateTimeOriginal with optional offset
+            dto = meta.get("DateTimeOriginal")
+            if isinstance(dto, str):
+                raw = dto.strip()
+                tz_raw = meta.get("OffsetTimeOriginal")
                 try:
                     dt = datetime.datetime.strptime(raw, "%Y:%m:%d %H:%M:%S")
-                    meta["DateTimeOriginal"] = dt.replace(microsecond=0).isoformat() + "Z"
+                    if isinstance(tz_raw, str) and len(tz_raw) in (5, 6) and tz_raw[0] in "+-":
+                        # "+HH:MM" or "+HHMM"
+                        hh = int(tz_raw[1:3]); mm = int(tz_raw[-2:])
+                        sign = 1 if tz_raw[0] == "+" else -1
+                        tz = datetime.timezone(sign * datetime.timedelta(hours=hh, minutes=mm))
+                        dt = dt.replace(tzinfo=tz)
+                        meta["DateTimeOriginal"] = dt.astimezone(datetime.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+                    else:
+                        # Unknown timezone. Keep local naive ISO without "Z".
+                        meta["DateTimeOriginal"] = dt.replace(microsecond=0).isoformat()
                 except Exception:
                     pass
 
             # GPS
-            if gps_raw:
-                lat = lon = None
+            if isinstance(gps_raw, dict):
+                lat = lon = alt = None
                 if all(k in gps_raw for k in ("GPSLatitude", "GPSLatitudeRef", "GPSLongitude", "GPSLongitudeRef")):
                     lat = _dms_to_decimal(gps_raw["GPSLatitude"], gps_raw["GPSLatitudeRef"])
                     lon = _dms_to_decimal(gps_raw["GPSLongitude"], gps_raw["GPSLongitudeRef"])
+
+                if "GPSAltitude" in gps_raw:
+                    alt = _rational_to_float(gps_raw.get("GPSAltitude"))
+                    ref = gps_raw.get("GPSAltitudeRef")
+                    try:
+                        ref_val = int(ref) if ref is not None else 0
+                        if alt is not None and ref_val == 1:
+                            alt = -alt  # below sea level
+                    except Exception:
+                        pass
 
                 if lat is not None and lon is not None:
                     gps_out = {
                         "lat": round(lat, 7),
                         "lon": round(lon, 7),
-                        "alt": _rational_to_float(gps_raw.get("GPSAltitude")) if gps_raw.get("GPSAltitude") else None,
+                        "alt": alt,
                     }
 
     except Exception:
-        # ignore image parse errors; return minimal metadata
         pass
 
     return meta, gps_out
@@ -139,24 +174,21 @@ def extract_meta(input_path: str) -> dict:
     metadata: Dict[str, Any] = {}
     gps: Optional[dict] = None
 
-    # EXIF for JPEG/TIFF
     if (mime or "").lower() in {"image/jpeg", "image/tiff"} or p.suffix.lower() in {".jpg", ".jpeg", ".tif", ".tiff"}:
         exif_meta, gps = _parse_exif_image(p)
         metadata.update(exif_meta)
 
-    # Build Google Maps link if GPS present
     map_link = None
     if gps and ("lat" in gps and "lon" in gps) and gps["lat"] is not None and gps["lon"] is not None:
         map_link = f"https://www.google.com/maps/search/?api=1&query={gps['lat']},{gps['lon']}"
 
-    out = {
+    return {
         "file": str(p),
         "file_size_bytes": size,
         "file_mime": mime or "application/octet-stream",
         "hashes": _hashes(p),
-        "metadata": metadata,        # includes CameraMake, CameraModel, DateTimeOriginal, ExposureTime, FNumber, ISO, FocalLength, LensModel, Software when present
-        "gps": gps,                  # {lat, lon, alt}
-        "map_link": map_link,        # null when GPS missing
+        "metadata": metadata,
+        "gps": gps,
+        "map_link": map_link,
         "warnings": [],
     }
-    return out
