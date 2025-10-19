@@ -1,0 +1,1 @@
+"""Placeholder. Enforce allowlist and metadata in a later step."""
