@@ -8,7 +8,7 @@ Local-first terminal toolkit for cryptography, OSINT, log analysis, and enumerat
 
 ## Install
 
-### PyPI (users)
+### PyPI
 Windows (PowerShell):
 ```powershell
 py -m pip install --user pipx
@@ -31,7 +31,7 @@ pip install --user nexus-tool
 nexus --help
 ```
 
-### GitHub (users)
+### GitHub
 ```bash
 pipx install "git+https://github.com/H4ch1Net/Nexus.git"
 nexus --help
