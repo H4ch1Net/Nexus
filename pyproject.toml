@@ -1,24 +1,14 @@
-[build-system]
-requires = ["hatchling>=1.21.1"]
-build-backend = "hatchling.build"
-
 [project]
-name = "nexus"
-version = "0.1.0"
-description = "Local-first terminal toolkit for crypto, OSINT, logs, enumeration"
-readme = "README.md"
+name = "nexus-tool"
+version = "0.1.1"
+description = "Local-first terminal toolkit for cryptography, OSINT, log analysis, and enumeration"
+readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.11"
-authors = [{name = "Nexus"}]
-license = {text = "MIT"}
-dependencies = [
-  "click>=8.1",
-  "duckdb>=1.0",
-  "pyarrow>=16.0",
-  "pandas>=2.2",
-]
+dependencies = ["click", "duckdb", "pyarrow", "pandas"]
 
 [project.scripts]
 nexus = "nexus.cli:cli"
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/nexus"]
+[project.urls]
+Homepage = "https://github.com/H4ch1Net/Nexus"
+Issues = "https://github.com/H4ch1Net/Nexus/issues"
