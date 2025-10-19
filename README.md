@@ -1,306 +1,196 @@
-# Nexus
+Nexus
+=====
 
-Local-first terminal toolkit for cryptography, OSINT, log analysis, and enumeration. CLI and TUI planned. Offline by default.
+Local-first terminal toolkit for cryptography, OSINT, log analysis, and enumeration.
+Offline by default. Cross-platform: Windows and Linux.
 
----
-
-## Requirements
-
-- Python 3.11 or newer (3.12 recommended)
-- Windows or Linux
+----------------------------------------
+REQUIREMENTS
+----------------------------------------
+- Python 3.11 or newer (3.12 recommended) for source installs
+- Or a released binary (no Python required)
 - Disk space for Parquet and DuckDB files
 
----
+----------------------------------------
+INSTALL FOR USERS (EASIEST FIRST)
+----------------------------------------
 
-## Install (users)
+A) GitHub + pipx (one command, no virtualenv juggling)
+  Windows:
+    py -m pip install --user pipx
+    py -m pipx ensurepath
+    pipx install "git+https://github.com/H4ch1Net/Nexus.git"
+    nexus --help
 
-### Option A: pipx (recommended)
+  Linux:
+    python3 -m pip install --user pipx
+    python3 -m pipx ensurepath
+    pipx install "git+https://github.com/H4ch1Net/Nexus.git"
+    nexus --help
 
-Windows:
-```powershell
-py -m pip install --user pipx
-py -m pipx ensurepath
-pipx install "git+https://github.com/H4ch1Net/Nexus.git"
-nexus --help
-```
+  Update:
+    pipx reinstall "git+https://github.com/H4ch1Net/Nexus.git"
+
+  Uninstall:
+    pipx uninstall nexus
+
+B) Download a binary from GitHub Releases (if provided)
+  Windows:
+    1) Download nexus.exe from the latest Release
+    2) Run: .\nexus.exe --help
+
+  Linux:
+    1) Download nexus from the latest Release
+    2) chmod +x nexus && ./nexus --help
+
+C) Docker (no Python on host; build locally)
+  Build image:
+    docker build -t nexus:local .
+  Run help:
+    docker run --rm nexus:local --help
+  Process a local file (mount folder):
+    docker run --rm -v "$PWD:/data" nexus:local osint meta -i /data/file.jpg
+
+----------------------------------------
+DEVELOPER INSTALL (CLONE + EDITABLE)
+----------------------------------------
+
+Windows (PowerShell):
+  git clone https://github.com/H4ch1Net/Nexus.git
+  cd Nexus
+  py -3.12 -m venv .venv
+  .\.venv\Scripts\Activate.ps1
+  python -m pip install --upgrade pip
+  pip install -e .
+  nexus --help
 
 Linux:
-```bash
-python3 -m pip install --user pipx
-python3 -m pipx ensurepath
-pipx install "git+https://github.com/H4ch1Net/Nexus.git"
-nexus --help
-```
+  git clone https://github.com/H4ch1Net/Nexus.git
+  cd Nexus
+  python3.12 -m venv .venv
+  source .venv/bin/activate
+  python -m pip install --upgrade pip
+  pip install -e .
+  nexus --help
 
-Update:
-```bash
-pipx reinstall "git+https://github.com/H4ch1Net/Nexus.git"
-```
+Optional convenience runners (repo root):
+  Windows: create run.ps1
+    $ErrorActionPreference="Stop"
+    Set-Location $PSScriptRoot
+    $py = (Get-Command py -ErrorAction SilentlyContinue) ? "py -3.12" : "python"
+    if (!(Test-Path .\.venv\Scripts\python.exe)) { iex "$py -m venv .venv" }
+    . .\.venv\Scripts\Activate.ps1
+    python -m pip install --upgrade pip >$null
+    pip install -e . >$null
+    nexus $args
 
-Uninstall:
-```bash
-pipx uninstall nexus
-```
+  Linux: create run.sh
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "$(dirname "$0")"
+    python=${PYTHON:-python3.12}
+    [ -f .venv/bin/python ] || $python -m venv .venv
+    source .venv/bin/activate
+    python -m pip install --upgrade pip >/dev/null
+    pip install -e . >/dev/null
+    exec nexus "$@"
 
----
-
-## Install (contributors)
-
-### Windows (PowerShell)
-```powershell
-git clone https://github.com/H4ch1Net/Nexus.git
-cd Nexus
-py -3.12 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -e .
-nexus --help
-```
-
-### Linux
-```bash
-git clone https://github.com/H4ch1Net/Nexus.git
-cd Nexus
-python3.12 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-pip install -e .
-nexus --help
-```
-
----
-
-## Quick use
-
-Show help:
-```bash
-nexus --help
-```
-
-OSINT metadata:
-```bash
-nexus osint meta -i /path/to/file.jpg
-```
-
-Log ingest and canned query:
-```bash
-# create a tiny JSONL file (Linux)
-printf '{"a":1}
-{"a":2}
-' > events.jsonl
-
-nexus log ingest -i ./events.jsonl
-nexus log canned total_requests
-```
-
-Crypto detect:
-```bash
-nexus crypt detect -i /path/to/blob.bin
-```
-
-Language detect:
-```bash
-nexus enum code-id -i /path/to/file.py
-```
-
-If `nexus` is not found:
-```bash
-python -m nexus.cli --help
-```
-
----
-
-## Self-bootstrapping runners (optional)
-
-Add `run.ps1` (Windows) at repo root:
-```powershell
-# run.ps1
-$ErrorActionPreference="Stop"
-Set-Location $PSScriptRoot
-$py = (Get-Command py -ErrorAction SilentlyContinue) ? "py -3.12" : "python"
-if (!(Test-Path .\.venv\Scripts\python.exe)) { iex "$py -m venv .venv" }
-. .\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip >$null
-pip install -e . >$null
-nexus $args
-```
-
-Add `run.sh` (Linux) at repo root:
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-cd "$(dirname "$0")"
-python=${PYTHON:-python3.12}
-[ -f .venv/bin/python ] || $python -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip >/dev/null
-pip install -e . >/dev/null
-exec nexus "$@"
-```
-
-Use:
-```powershell
-# Windows
-.
-un.ps1 osint meta -i C:\pathile.jpg
-```
-```bash
-# Linux
-chmod +x run.sh
-./run.sh osint meta -i /path/file.jpg
-```
-
----
-
-## Commands
+----------------------------------------
+USAGE
+----------------------------------------
 
 General:
-- `nexus --help`  
-- `nexus --config <path/to/config.toml> <subcommand> ...`
+  nexus --help
+  nexus --config <path/to/config.toml> <subcommand> ...
 
-OSINT:
-- `nexus osint meta -i <path>`  
-  Output: file size, MIME, MD5/SHA1/SHA256, placeholders for metadata and GPS.
+OSINT metadata:
+  nexus osint meta -i <path/to/file>
 
 Logs:
-- `nexus log ingest -i <events.jsonl>`  
-  Reads JSON Lines. Writes Parquet dataset. Registers a DuckDB view.
-- `nexus log canned total_requests`  
-  Returns `{result, sql, evidence, confidence}`.
+  # JSON Lines input
+  nexus log ingest -i <events.jsonl>
+  nexus log canned total_requests
 
-Cryptography:
-- `nexus crypt detect -i <blob>`  
-  Heuristics: entropy, printable ratio, magic headers (PDF/ZIP/GZIP), base encodings hints.
+Cryptography heuristics:
+  nexus crypt detect -i <path/to/blob>
 
-Enumeration:
-- `nexus enum code-id -i <file>`  
-  Detects language using extension and shebang.
+Language detection:
+  nexus enum code-id -i <path/to/sourcefile>
 
-Exit codes:
-- `0` success
-- `1` general error
-- `2` bad input or missing file
-- `3` no result
-- `10` external provider not configured
+If the command is not found:
+  python -m nexus.cli --help
 
----
-
-## Configuration
+----------------------------------------
+CONFIGURATION
+----------------------------------------
 
 Default path:
-- Windows: `C:\Users\<you>\.nexus\config.toml`
-- Linux: `/home/<you>/.nexus/config.toml`
+  Windows:  C:\Users\<user>\.nexus\config.toml
+  Linux:    /home/<user>/.nexus/config.toml
 
-Sample:
-```toml
-[data]
-data_dir = "~/.nexus"
-plugins_dir = "~/.nexus/plugins"
-log_dir = "~/.nexus"
-audit_log = "~/.nexus/audit.log"
+Minimal example:
+  [data]
+  data_dir = "~/.nexus"
+  plugins_dir = "~/.nexus/plugins"
+  log_dir = "~/.nexus"
+  audit_log = "~/.nexus/audit.log"
 
-[log]
-default_table_name = "events"
-ingest_chunk_size_rows = 200000
+  [log]
+  default_table_name = "events"
 
-[crypto]
-auto_decode_top = 3
-max_auto_decode_input_bytes = 32768
-```
+  [crypto]
+  auto_decode_top = 3
+  max_auto_decode_input_bytes = 32768
 
-Override config path with `--config`.
+----------------------------------------
+DATA LOCATIONS
+----------------------------------------
 
----
+- Parquet datasets: <data_dir>/parquet/<dataset-id>/
+- DuckDB catalog:  <data_dir>/duckdb/nexus.duckdb
+- Audit log (NDJSON): <data_dir>/audit.log
 
-## Data locations
+----------------------------------------
+TROUBLESHOOTING
+----------------------------------------
 
-- Parquet datasets: `<data_dir>/parquet/<dataset-id>/`
-- DuckDB catalog: `<data_dir>/duckdb/nexus.duckdb`
-- Audit log (NDJSON lines): `<data_dir>/audit.log`
-
----
-
-## Security
-
-- Offline by default.
-- Providers disabled unless configured.
-- Plugins loaded from allowlisted paths only (policy to follow).
-- Audit log records module, action, time, and notes.
-
----
-
-## Troubleshooting
-
-Python version error:
-```
-ERROR: Package 'nexus' requires a different Python: 3.10.x not in '>=3.11'
-```
-Fix: install Python 3.11+ and create the venv with that version.
-- Windows: `py -3.12 -m venv .venv`
-- Linux: `python3.12 -m venv .venv`
+Python version error (needs >= 3.11):
+  Install Python 3.12 and recreate the venv:
+    Windows: py -3.12 -m venv .venv
+    Linux:   python3.12 -m venv .venv
 
 Permission denied recreating venv (Windows):
-```
-Permission denied: '.venv\Scripts\python.exe'
-```
-Fix: deactivate first, then remove and recreate.
-```powershell
-deactivate
-Remove-Item -Recurse -Force .venv
-py -3.12 -m venv .venv
-```
+  deactivate
+  Remove-Item -Recurse -Force .venv
+  py -3.12 -m venv .venv
 
-`nexus` not recognized:
-- Use `python -m nexus.cli --help`.
-- Ensure venv is activated.
-- Ensure install succeeded.
+Command not found:
+  Ensure install completed.
+  Ensure venv is activated (dev install).
+  Try: python -m nexus.cli --help
 
-PowerShell script blocked:
-```
-. .\Scripts\Activate.ps1 is not digitally signed
-```
-Fix:
-```powershell
-Set-ExecutionPolicy -Scope Process Bypass
-```
+PowerShell execution policy blocks activation:
+  Set-ExecutionPolicy -Scope Process Bypass
 
-pipx not found:
-- Windows: `py -m pip install --user pipx` then `py -m pipx ensurepath`
-- Linux: `python3 -m pip install --user pipx` then `python3 -m pipx ensurepath`
-- Restart the shell.
+pipx not on PATH:
+  Windows: py -m pipx ensurepath
+  Linux:   python3 -m pipx ensurepath
+  Restart the shell.
 
----
+----------------------------------------
+UPDATE / UNINSTALL
+----------------------------------------
 
-## Updating
-
-pipx:
-```bash
-pipx reinstall "git+https://github.com/H4ch1Net/Nexus.git"
-```
+pipx install:
+  Update:    pipx reinstall "git+https://github.com/H4ch1Net/Nexus.git"
+  Uninstall: pipx uninstall nexus
 
 Editable install:
-```bash
-git pull
-pip install -e .
-```
+  Update:    git pull && pip install -e .
+  Uninstall: deactivate (if active) then remove .venv
 
----
+----------------------------------------
+LICENSE
+----------------------------------------
 
-## Uninstall
-
-pipx:
-```bash
-pipx uninstall nexus
-```
-
-Editable install:
-```bash
-deactivate  # if active
-rm -rf .venv  # or Remove-Item -Recurse -Force .venv on Windows
-```
-
----
-
-## License
-
-See `LICENSE`.
+See LICENSE in the repository.
