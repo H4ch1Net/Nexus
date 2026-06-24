@@ -1,59 +1,106 @@
 # Nexus
 
-Local-first terminal toolkit for cryptography, OSINT, log analysis, and enumeration.
+A local-first terminal toolkit for cryptography analysis, OSINT, log analytics, and code enumeration. Runs entirely offline. No accounts, no telemetry.
 
 ## Requirements
-- Windows or Linux
+
 - Python 3.11+
+- Windows or Linux
 
 ## Install
 
-### Arch (pipx)
+**Arch**
 ```bash
 sudo pacman -S --needed python-pipx
-pipx ensurepath   # open a new shell after this
+pipx ensurepath
 pipx install nexus-tool
-nexus --help
 ```
 
-### Debian-based (pipx)
+**Debian / Ubuntu / Kali**
 ```bash
 sudo apt update && sudo apt install -y pipx
-pipx ensurepath   # open a new shell after this
+pipx ensurepath
 pipx install nexus-tool
-nexus --help
 ```
 
-### Windows (per-user pip)
+**Windows**
 ```powershell
 py -m pip install --user -U nexus-tool
-nexus --help
 ```
 
-## Usage
+Open a new shell after `pipx ensurepath` to pick up the PATH change.
+
+## Commands
+
+### Cryptography
+
+Detect encodings, classical ciphers, and modern encryption from an input string. Reports entropy, index of coincidence, and ranked candidates.
 
 ```bash
-nexus --help
-nexus osint meta -i /path/to/image.jpg
-nexus log ingest -i ./events.jsonl
-nexus log canned total_requests
-nexus crypt detect -i /path/to/blob.bin
-nexus enum code-id -i /path/to/sourcefile
+# Quick one-line answer (default)
+nexus crypt detect -i "SGVsbG8gV29ybGQh"
+
+# Full statistical breakdown
+nexus crypt detect -i "SGVsbG8gV29ybGQh" --format detailed
+
+# Compact table
+nexus crypt detect -i "c2NyaWJibGU=" --format compact
+
+# JSON output for scripting
+nexus crypt detect -i "URYYB JBEYQ" --format json --top 5
 ```
+
+### OSINT / Metadata
+
+Extract EXIF and file metadata from images.
+
+```bash
+nexus osint meta -i /path/to/image.jpg
+```
+
+### Log Analysis
+
+Ingest structured JSONL logs into a local DuckDB database and run analytics queries against them.
+
+```bash
+# Ingest a log file
+nexus log ingest -i ./events.jsonl
+
+# Run a built-in query
+nexus log canned total_requests
+```
+
+### Enumeration
+
+Identify the programming language of a code snippet.
+
+```bash
+nexus enum code-id -i "def hello(): print('hi')"
+```
+
+## Output Formats (crypt detect)
+
+| Format | Description |
+|--------|-------------|
+| `simple` | Top match with confidence rating (default) |
+| `detailed` | Full entropy, IC analysis, and ranked candidates |
+| `compact` | Table view for quick scanning |
+| `json` | Raw JSON for scripting and piping |
 
 ## Update / Uninstall
 
-Arch/Kali:
+**Linux (pipx)**
 ```bash
 pipx upgrade nexus-tool
 pipx uninstall nexus-tool
 ```
 
-Windows:
+**Windows**
 ```powershell
 py -m pip install --user -U nexus-tool
 py -m pip uninstall nexus-tool
 ```
 
 ## License
+
 MIT
