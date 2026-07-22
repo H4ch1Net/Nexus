@@ -3,189 +3,24 @@ import click
 from pathlib import Path
 from nexus.core.config import load_config
 from nexus.core.audit import audit
-
-
-def format_simple_output(result: dict) -> str:
-    """Format detection results in a simple, clean way - just the essentials."""
-    lines = []
-    
-    candidates = result['candidates']
-    
-    if not candidates:
-        lines.append("❌ No matches found")
-        return "\n".join(lines)
-    
-    # Just show top result with high confidence
-    top = candidates[0]
-    score = top['score']
-    name = top['name'].replace('_', ' ').title()
-    
-    if score >= 0.85:
-        lines.append(f"✓ Detected: {name} ({score:.0%} confidence)")
-    elif score >= 0.70:
-        lines.append(f"→ Likely: {name} ({score:.0%} confidence)")
-    else:
-        lines.append(f"? Possibly: {name} ({score:.0%} confidence)")
-    
-    # Show runner-ups if they're close
-    if len(candidates) > 1:
-        alternates = []
-        for candidate in candidates[1:4]:  # Show up to 3 alternates
-            if candidate['score'] > 0.65:  # Only show strong alternates
-                alternates.append(candidate['name'].replace('_', ' ').title())
-        
-        if alternates:
-            lines.append(f"   Also consider: {', '.join(alternates)}")
-    
-    return "\n".join(lines)
-
-
-def format_detailed_output(result: dict) -> str:
-    """Format detection results with full details and analysis."""
-    lines = []
-    
-    # Header
-    lines.append("=" * 70)
-    lines.append("🔍 CRYPTOGRAPHIC DETECTION RESULTS")
-    lines.append("=" * 70)
-    
-    # Input info
-    lines.append(f"\n📊 Input Analysis:")
-    lines.append(f"   Length: {result['input_length']} characters")
-    
-    # Metrics
-    metrics = result['metrics']
-    lines.append(f"\n📈 Metrics:")
-    lines.append(f"   Entropy:              {metrics['entropy']:.4f} bits/byte")
-    lines.append(f"   Printable Ratio:      {metrics['printable_ratio']:.2%}")
-    lines.append(f"   Index of Coincidence: {metrics['index_of_coincidence']:.4f}")
-    
-    # Interpretation hints
-    ic = metrics['index_of_coincidence']
-    ent = metrics['entropy']
-    lines.append(f"\n💡 Statistical Interpretation:")
-    
-    # Entropy interpretation
-    if ent > 7.5:
-        lines.append(f"   ⚡ High entropy ({ent:.2f}) suggests modern encryption or compression")
-        lines.append(f"      → Data is highly random, likely AES/ChaCha20 or compressed")
-    elif ent > 6.0:
-        lines.append(f"   📝 Medium entropy ({ent:.2f}) suggests encoding or weak encryption")
-        lines.append(f"      → Could be Base64/hex encoded data or classical cipher")
-    else:
-        lines.append(f"   📄 Low entropy ({ent:.2f}) suggests plaintext or simple cipher")
-        lines.append(f"      → Natural language or very simple substitution")
-    
-    # IC interpretation with more detail
-    lines.append("")
-    if ic > 0.060:
-        lines.append(f"   🔤 High IC ({ic:.4f}) suggests monoalphabetic or transposition")
-        lines.append(f"      → Letter frequencies preserved (Caesar, Atbash, substitution)")
-        lines.append(f"      → IC close to English (0.067) - same letters, different order")
-    elif ic > 0.045:
-        lines.append(f"   🔄 Medium IC ({ic:.4f}) suggests polyalphabetic cipher")
-        lines.append(f"      → Flattened letter frequencies (Vigenère, Beaufort, etc.)")
-        lines.append(f"      → Multiple alphabets used")
-    elif ic > 0.030:
-        lines.append(f"   🎲 Low IC ({ic:.4f}) suggests random or strong encryption")
-        lines.append(f"      → Very uniform distribution (modern cipher or random data)")
-    
-    # Candidates with full details
-    candidates = result['candidates']
-    if not candidates:
-        lines.append(f"\n❌ No strong matches found")
-        lines.append(f"   The input doesn't match any known patterns")
-    else:
-        lines.append(f"\n🎯 Detection Results ({len(candidates)} candidates):")
-        lines.append("")
-        
-        for i, candidate in enumerate(candidates, 1):
-            score = candidate['score']
-            name = candidate['name']
-            category = candidate.get('category', 'unknown')
-            
-            # Score bar (longer for detailed view)
-            bar_length = int(score * 30)
-            bar = "█" * bar_length + "░" * (30 - bar_length)
-            
-            # Confidence emoji
-            if score >= 0.85:
-                confidence = "🟢 Very High"
-                reliability = "Strongly recommended"
-            elif score >= 0.70:
-                confidence = "🟡 High"
-                reliability = "Recommended"
-            elif score >= 0.55:
-                confidence = "🟠 Medium"
-                reliability = "Consider as possibility"
-            else:
-                confidence = "🔴 Low"
-                reliability = "Weak match"
-            
-            # Category emoji and description
-            category_info = {
-                'encoder': ('📦', 'Encoder', 'Text representation or encoding scheme'),
-                'armor': ('🛡️', 'Armor', 'ASCII armored binary data'),
-                'classical_cipher': ('📜', 'Classical Cipher', 'Historical encryption method'),
-                'modern_cipher': ('🔐', 'Modern Cipher', 'Strong cryptographic algorithm'),
-                'container': ('📁', 'Container', 'File format or compression'),
-                'unknown': ('❓', 'Unknown', 'Unclassified')
-            }
-            emoji, cat_name, cat_desc = category_info.get(category, ('❓', 'Unknown', 'Unclassified'))
-            
-            lines.append(f"   {i}. {name.replace('_', ' ').title()}")
-            lines.append(f"      {bar} {score:.1%}")
-            lines.append(f"      Confidence: {confidence} ({reliability})")
-            lines.append(f"      Category:   {emoji} {cat_name} - {cat_desc}")
-            
-            # Additional parameters if present
-            if 'params' in candidate:
-                params = candidate['params']
-                if params:
-                    lines.append(f"      Parameters:")
-                    for key, value in params.items():
-                        if isinstance(value, float):
-                            lines.append(f"         • {key}: {value:.4f}")
-                        elif isinstance(value, list):
-                            lines.append(f"         • {key}: {', '.join(str(v) for v in value[:5])}")
-                            if len(value) > 5:
-                                lines.append(f"           ... and {len(value) - 5} more")
-                        else:
-                            lines.append(f"         • {key}: {value}")
-            
-            if i < len(candidates):
-                lines.append("")
-    
-    lines.append("\n" + "=" * 70)
-    
-    return "\n".join(lines)
-
-
-def format_compact_output(result: dict) -> str:
-    """Format detection results in a compact table format."""
-    lines = []
-    
-    lines.append(f"Input: {result['input_length']} chars | "
-                f"Entropy: {result['metrics']['entropy']:.2f} | "
-                f"IC: {result['metrics']['index_of_coincidence']:.4f}")
-    lines.append("")
-    lines.append(f"{'#':<4} {'Name':<32} {'Score':<8} {'Category':<20}")
-    lines.append("-" * 70)
-    
-    for i, candidate in enumerate(result['candidates'], 1):
-        name = candidate['name'].replace('_', ' ').title()
-        score = f"{candidate['score']:.1%}"
-        category = candidate.get('category', 'unknown').replace('_', ' ').title()
-        lines.append(f"{i:<4} {name:<32} {score:<8} {category:<20}")
-    
-    return "\n".join(lines)
+from nexus.modules.cryptography.formatting import (
+    format_simple_output, format_detailed_output, format_compact_output,
+)
 
 
 @click.group()
 @click.option("--config", default="~/.nexus/config.toml", help="Path to config TOML")
+@click.option("--no-plugins", is_flag=True, default=False, help="Skip loading plugins for this invocation.")
 @click.pass_context
-def cli(ctx, config):
+def cli(ctx, config, no_plugins):
     ctx.obj = load_config(config)
+    if not no_plugins:
+        from nexus.core.plugin_loader import load_plugins, PluginContext
+        plugin_ctx = PluginContext(cfg=ctx.obj, cli=cli, crypt_group=crypt,
+                                    osint_group=osint, log_group=log, enum_group=enum)
+        for info in load_plugins(ctx.obj, plugin_ctx):
+            if info.error:
+                click.echo(f"⚠️  Plugin {info.path.name}: {info.error}", err=True)
 
 
 # -------- CRYPT --------
@@ -290,6 +125,13 @@ def log_ingest(ctx, input):
     sys.exit(0 if res.get("table") else 1)
 
 
+@log.command("queries")
+def log_queries():
+    """List available canned queries and their parameters."""
+    from nexus.modules.log_analysis.canned_queries import list_canned_queries
+    click.echo(json.dumps(list_canned_queries(), ensure_ascii=False, indent=2))
+
+
 @log.command("canned")
 @click.argument("name")
 @click.option("--params", default="{}")
@@ -313,10 +155,87 @@ def enum():
 @enum.command("code-id")
 @click.option("-i", "--input", "inline", required=True, type=str,
               help="Inline code snippet only.")
+@click.option("-n", "--filename", default=None, type=str,
+              help="Optional filename hint (e.g. foo.py) - used only for its extension, never read from disk.")
 @click.pass_context
-def code_id(ctx, inline):
+def code_id(ctx, inline, filename):
     from nexus.modules.enumeration.service import detect_language
-    res = detect_language(inline)
+    res = detect_language(inline, filename=filename)
     audit(ctx.obj, module="enum", action="code-id", target="[inline]", success_bool=bool(res))
     click.echo(json.dumps(res, ensure_ascii=False, indent=2))
     sys.exit(0 if res.get("candidates") else 3)
+
+
+# -------- PLUGIN --------
+@cli.group()
+def plugin():
+    """Plugin discovery and trust management"""
+    pass
+
+
+@plugin.command("list")
+@click.pass_context
+def plugin_list(ctx):
+    from nexus.core.plugin_loader import discover_plugin_files, verify_trust
+    cfg = ctx.obj
+    out = []
+    for path in discover_plugin_files(cfg):
+        trusted, digest = verify_trust(path, cfg)
+        out.append({"path": str(path), "sha256": digest, "trusted": trusted})
+    click.echo(json.dumps(out, ensure_ascii=False, indent=2))
+
+
+@plugin.command("trust")
+@click.argument("path", type=click.Path(exists=True, dir_okay=False))
+@click.pass_context
+def plugin_trust(ctx, path):
+    from nexus.core.plugin_loader import sha256_file
+    from nexus.core.config import save_config
+    cfg = ctx.obj
+    digest = sha256_file(Path(path))
+
+    hashes = set(cfg.raw.get("security", {}).get("trusted_plugin_hashes", []))
+    if digest in hashes:
+        click.echo(f"Already trusted: {digest}")
+        return
+
+    hashes.add(digest)
+    cfg.raw.setdefault("security", {})["trusted_plugin_hashes"] = sorted(hashes)
+    cfg.trusted_plugin_hashes = sorted(hashes)
+    save_config(cfg.config_path, cfg.raw)
+    audit(cfg, module="plugin", action="trust", target=path, success_bool=True, notes=f"sha256={digest}")
+    click.echo(f"Trusted {path} (sha256={digest})")
+
+
+# -------- WEB --------
+@cli.group()
+def web():
+    """Local web UI"""
+    pass
+
+
+@web.command("serve")
+@click.option("--host", default=None, help="Bind host (default from config, normally 127.0.0.1).")
+@click.option("--port", default=None, type=int, help="Bind port (default from config, normally 8765).")
+@click.pass_context
+def web_serve(ctx, host, port):
+    """Serve the local web UI. Binds to 127.0.0.1 by default - this tool is
+    local-first and the web UI has no authentication, so only bind it to a
+    non-loopback address if you understand the exposure."""
+    cfg = ctx.obj
+    bind_host = host or cfg.web_bind_host
+    bind_port = port or cfg.web_port
+
+    if bind_host not in ("127.0.0.1", "localhost", "::1"):
+        click.echo(f"⚠️  Binding to {bind_host} exposes the Nexus web UI beyond localhost. "
+                   f"It has no authentication - anyone who can reach this host can use it.", err=True)
+
+    try:
+        from nexus.web.app import create_app
+    except ImportError:
+        click.echo("❌ The web UI requires Flask. Install it with: pip install nexus-tool[web]", err=True)
+        sys.exit(1)
+
+    app = create_app(cfg)
+    click.echo(f"Serving Nexus web UI on http://{bind_host}:{bind_port}")
+    app.run(host=bind_host, port=bind_port, debug=False, threaded=True)

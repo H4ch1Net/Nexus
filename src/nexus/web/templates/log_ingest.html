@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Log Ingest - Nexus{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>Log Ingest</h2>
+  <p>Upload a JSONL log file to ingest into the local DuckDB table.</p>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post" enctype="multipart/form-data">
+    <label for="file">JSONL file</label>
+    <input id="file" type="file" name="file" required>
+    <button type="submit">Ingest</button>
+  </form>
+</div>
+{% if result_json %}
+<div class="card">
+  <pre>{{ result_json }}</pre>
+  <p><a href="{{ url_for('log_canned') }}">Run a canned query &rarr;</a></p>
+</div>
+{% endif %}
+{% endblock %}

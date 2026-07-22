@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Nexus{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header>
+    <h1>Nexus</h1>
+    <nav>
+      <a href="{{ url_for('index') }}">Home</a>
+      <a href="{{ url_for('crypt_detect') }}">Crypt</a>
+      <a href="{{ url_for('osint_meta') }}">OSINT</a>
+      <a href="{{ url_for('log_ingest') }}">Log Ingest</a>
+      <a href="{{ url_for('log_canned') }}">Log Queries</a>
+      <a href="{{ url_for('enum_code_id') }}">Enum</a>
+    </nav>
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+  <footer>Local-only &middot; 127.0.0.1 &middot; no telemetry</footer>
+</body>
+</html>

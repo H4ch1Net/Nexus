@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Log Queries - Nexus{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>Canned Queries</h2>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post">
+    <label for="name">Query</label>
+    <select id="name" name="name" onchange="this.form.submit()">
+      {% for q in queries %}
+      <option value="{{ q.name }}" {% if q.name == selected %}selected{% endif %}>{{ q.name }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="params">Params (JSON)</label>
+    <textarea id="params" name="params">{{ params_raw }}</textarea>
+
+    <button type="submit">Run</button>
+  </form>
+</div>
+<div class="card">
+  <h3>Parameters for "{{ selected }}"</h3>
+  {% for q in queries %}
+    {% if q.name == selected %}
+      <p>{{ q.description }}</p>
+      {% if q.params %}
+      <table>
+        <tr><th>Param</th><th>Spec</th></tr>
+        {% for k, v in q.params.items() %}
+        <tr><td>{{ k }}</td><td>{{ v }}</td></tr>
+        {% endfor %}
+      </table>
+      {% else %}
+      <p><em>No parameters.</em></p>
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+</div>
+{% if result_json %}
+<div class="card">
+  <pre>{{ result_json }}</pre>
+</div>
+{% endif %}
+{% endblock %}

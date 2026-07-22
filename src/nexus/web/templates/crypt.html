@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Crypt Detect - Nexus{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>Cryptography Detection</h2>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post">
+    <label for="inline">Input</label>
+    <textarea id="inline" name="inline" placeholder="SGVsbG8gV29ybGQh">{{ inline }}</textarea>
+
+    <label for="format">Output format</label>
+    <select id="format" name="format">
+      {% for f in ["simple", "detailed", "compact", "json"] %}
+      <option value="{{ f }}" {% if f == fmt %}selected{% endif %}>{{ f }}</option>
+      {% endfor %}
+    </select>
+
+    <button type="submit">Detect</button>
+  </form>
+</div>
+{% if formatted %}
+<div class="card">
+  <pre>{{ formatted }}</pre>
+</div>
+{% endif %}
+{% endblock %}

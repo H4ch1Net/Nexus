@@ -25,21 +25,43 @@ DEFAULT_TOML = {
     "security": {
         "plugin_whitelist_paths": [str(Path.home()/".nexus"/"plugins")],
         "require_plugin_signature": True,
+        "trusted_plugin_hashes": [],
         "fips_mode": False,
+    },
+    "web": {
+        "bind_host": "127.0.0.1",
+        "port": 8765,
     },
 }
 
 @dataclass
 class Config:
     raw: dict
+    config_path: Path
     data_dir: Path
     plugins_dir: Path
     log_dir: Path
     audit_log: Path
     default_table: str
+    plugin_whitelist_paths: list[Path]
+    require_plugin_signature: bool
+    trusted_plugin_hashes: list[str]
+    web_bind_host: str
+    web_port: int
 
 def _expand(p: str) -> Path:
     return Path(os.path.expandvars(os.path.expanduser(p)))
+
+def _deep_merge(base: dict, override: dict) -> dict:
+    """Merge one level of nested section dicts (e.g. [security]) instead of
+    letting a user-supplied section silently drop unset default keys."""
+    out = dict(base)
+    for k, v in override.items():
+        if k in out and isinstance(out[k], dict) and isinstance(v, dict):
+            out[k] = out[k] | v
+        else:
+            out[k] = v
+    return out
 
 def load_config(path: str) -> Config:
     cfg_path = _expand(path)
@@ -48,7 +70,7 @@ def load_config(path: str) -> Config:
             user = tomllib.load(f)
     else:
         user = {}
-    merged = DEFAULT_TOML | user
+    merged = _deep_merge(DEFAULT_TOML, user)
 
     data = merged.get("data", {})
     data_dir = _expand(data.get("data_dir", DEFAULT_TOML["data"]["data_dir"]))
@@ -59,11 +81,50 @@ def load_config(path: str) -> Config:
     for p in [data_dir, plugins_dir, log_dir, audit_log.parent]:
         p.mkdir(parents=True, exist_ok=True)
 
+    security = merged.get("security", {})
+    plugin_whitelist_paths = [
+        _expand(p) for p in security.get("plugin_whitelist_paths", DEFAULT_TOML["security"]["plugin_whitelist_paths"])
+    ]
+
+    web = merged.get("web", {})
+
     return Config(
         raw=merged,
+        config_path=cfg_path,
         data_dir=data_dir,
         plugins_dir=plugins_dir,
         log_dir=log_dir,
         audit_log=audit_log,
         default_table=merged.get("log", {}).get("default_table_name", "events"),
+        plugin_whitelist_paths=plugin_whitelist_paths,
+        require_plugin_signature=bool(security.get("require_plugin_signature", True)),
+        trusted_plugin_hashes=list(security.get("trusted_plugin_hashes", [])),
+        web_bind_host=web.get("bind_host", DEFAULT_TOML["web"]["bind_host"]),
+        web_port=int(web.get("port", DEFAULT_TOML["web"]["port"])),
     )
+
+def _toml_value(v) -> str:
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    if isinstance(v, (int, float)):
+        return str(v)
+    if isinstance(v, str):
+        return '"' + v.replace("\\", "\\\\").replace('"', '\\"') + '"'
+    if isinstance(v, list):
+        return "[" + ", ".join(_toml_value(x) for x in v) + "]"
+    raise TypeError(f"unsupported TOML value type: {type(v)!r}")
+
+def save_config(config_path: Path, raw: dict) -> None:
+    """Write a flat TOML file (top-level sections of scalar/list values only,
+    matching DEFAULT_TOML's shape). Used by `nexus plugin trust` to persist
+    trusted_plugin_hashes; not a general-purpose TOML writer."""
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    lines = []
+    for section, values in raw.items():
+        if not isinstance(values, dict):
+            continue
+        lines.append(f"[{section}]")
+        for k, v in values.items():
+            lines.append(f"{k} = {_toml_value(v)}")
+        lines.append("")
+    config_path.write_text("\n".join(lines), encoding="utf-8")

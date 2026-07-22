@@ -8,7 +8,7 @@ def _now_iso() -> str:
 
 def audit(cfg, *, module: str, action: str, target: str = "", payload: bytes | None = None,
           bytes_sent: int = 0, provider: str = "", result_id: str = "", success_bool: bool = True,
-          notes: str = "") -> None:
+          notes: str = "", interface: str = "cli") -> None:
     sha = hashlib.sha256(payload).hexdigest() if payload else ""
     rec = {
         "timestamp_utc": _now_iso(),
@@ -21,6 +21,7 @@ def audit(cfg, *, module: str, action: str, target: str = "", payload: bytes | N
         "result_id": result_id or str(uuid.uuid4()),
         "success_bool": success_bool,
         "notes": notes,
+        "interface": interface,
     }
     path: Path = cfg.audit_log
     with path.open("a", encoding="utf-8") as f:

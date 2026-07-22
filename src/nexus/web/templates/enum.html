@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Enum Code-ID - Nexus{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>Code Language Detection</h2>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post">
+    <label for="inline">Code snippet</label>
+    <textarea id="inline" name="inline" placeholder="def hello(): print('hi')">{{ inline }}</textarea>
+
+    <label for="filename">Filename hint (optional, e.g. foo.py)</label>
+    <input id="filename" type="text" name="filename" value="{{ filename }}">
+
+    <button type="submit">Detect</button>
+  </form>
+</div>
+{% if result_json %}
+<div class="card">
+  <pre>{{ result_json }}</pre>
+</div>
+{% endif %}
+{% endblock %}

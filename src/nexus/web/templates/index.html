@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Nexus{% endblock %}
+{% block content %}
+<div class="card">
+  <p>Local-first toolkit for cryptography analysis, OSINT, log analytics, and code enumeration. Everything below runs against the same local service layer as the <code>nexus</code> CLI, entirely offline.</p>
+</div>
+<div class="grid">
+  <div class="card">
+    <h3>Cryptography</h3>
+    <p>Detect encodings, classical ciphers, and modern encryption from an input string.</p>
+    <a href="{{ url_for('crypt_detect') }}"><button>Open</button></a>
+  </div>
+  <div class="card">
+    <h3>OSINT / Metadata</h3>
+    <p>Extract EXIF and file metadata from an uploaded image.</p>
+    <a href="{{ url_for('osint_meta') }}"><button>Open</button></a>
+  </div>
+  <div class="card">
+    <h3>Log Ingest</h3>
+    <p>Ingest a JSONL log file into the local DuckDB database.</p>
+    <a href="{{ url_for('log_ingest') }}"><button>Open</button></a>
+  </div>
+  <div class="card">
+    <h3>Log Queries</h3>
+    <p>Run canned analytics queries against ingested logs.</p>
+    <a href="{{ url_for('log_canned') }}"><button>Open</button></a>
+  </div>
+  <div class="card">
+    <h3>Enumeration</h3>
+    <p>Identify the programming language of a code snippet.</p>
+    <a href="{{ url_for('enum_code_id') }}"><button>Open</button></a>
+  </div>
+</div>
+{% endblock %}
