@@ -20,6 +20,8 @@ class PluginContext:
     osint_group: object
     log_group: object
     enum_group: object
+    ioc_group: object
+    secrets_group: object
 
 
 @dataclass

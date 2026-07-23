@@ -4,23 +4,46 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Nexus{% endblock %}</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%235eb1ef'/%3E%3Ctext x='50' y='68' font-size='58' font-family='monospace' font-weight='bold' text-anchor='middle' fill='%2306222f'%3EN%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
   <header>
-    <h1>Nexus</h1>
-    <nav>
-      <a href="{{ url_for('index') }}">Home</a>
-      <a href="{{ url_for('crypt_detect') }}">Crypt</a>
-      <a href="{{ url_for('osint_meta') }}">OSINT</a>
-      <a href="{{ url_for('log_ingest') }}">Log Ingest</a>
-      <a href="{{ url_for('log_canned') }}">Log Queries</a>
-      <a href="{{ url_for('enum_code_id') }}">Enum</a>
+    <h1><a href="{{ url_for('index') }}">Nexus</a></h1>
+    <nav class="groups">
+      <div class="group">
+        <span class="group-label">Crypto</span>
+        <a href="{{ url_for('crypt_detect') }}" class="{{ 'active' if request.endpoint == 'crypt_detect' }}">Detect</a>
+        <a href="{{ url_for('crypt_codec') }}" class="{{ 'active' if request.endpoint == 'crypt_codec' }}">Codec</a>
+        <a href="{{ url_for('crypt_hash_id') }}" class="{{ 'active' if request.endpoint == 'crypt_hash_id' }}">Hash&nbsp;ID</a>
+        <a href="{{ url_for('crypt_xor') }}" class="{{ 'active' if request.endpoint == 'crypt_xor' }}">XOR</a>
+      </div>
+      <div class="group">
+        <span class="group-label">Recon</span>
+        <a href="{{ url_for('ioc_extract') }}" class="{{ 'active' if request.endpoint == 'ioc_extract' }}">IOC</a>
+        <a href="{{ url_for('secrets_scan') }}" class="{{ 'active' if request.endpoint == 'secrets_scan' }}">Secrets</a>
+        <a href="{{ url_for('osint_meta') }}" class="{{ 'active' if request.endpoint == 'osint_meta' }}">OSINT</a>
+      </div>
+      <div class="group">
+        <span class="group-label">Logs</span>
+        <a href="{{ url_for('log_ingest') }}" class="{{ 'active' if request.endpoint == 'log_ingest' }}">Ingest</a>
+        <a href="{{ url_for('log_canned') }}" class="{{ 'active' if request.endpoint == 'log_canned' }}">Query</a>
+      </div>
+      <div class="group">
+        <span class="group-label">Code</span>
+        <a href="{{ url_for('enum_code_id') }}" class="{{ 'active' if request.endpoint == 'enum_code_id' }}">Lang&nbsp;ID</a>
+      </div>
+      <div class="group">
+        <span class="group-label">Trail</span>
+        <a href="{{ url_for('audit_log_view') }}" class="{{ 'active' if request.endpoint == 'audit_log_view' }}">Audit</a>
+      </div>
     </nav>
+    <button id="theme-toggle" title="Toggle light/dark theme" aria-label="Toggle theme">☽</button>
   </header>
   <main>
     {% block content %}{% endblock %}
   </main>
   <footer>Local-only &middot; 127.0.0.1 &middot; no telemetry</footer>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

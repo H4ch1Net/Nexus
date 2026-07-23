@@ -6,14 +6,20 @@
   <p>Upload a JSONL log file to ingest into the local DuckDB table.</p>
   {% if error %}<div class="error">{{ error }}</div>{% endif %}
   <form method="post" enctype="multipart/form-data">
-    <label for="file">JSONL file</label>
-    <input id="file" type="file" name="file" required>
+    <div class="dropzone">
+      <input id="file" type="file" name="file" required>
+      <span class="dropzone-label">Drag a .jsonl file here or click to browse</span>
+    </div>
     <button type="submit">Ingest</button>
   </form>
 </div>
 {% if result_json %}
 <div class="card">
-  <pre>{{ result_json }}</pre>
+  <div class="result-header">
+    <h3>Result</h3>
+    <button class="secondary" data-copy-target="result-pre">Copy</button>
+  </div>
+  <pre id="result-pre">{{ result_json }}</pre>
   <p><a href="{{ url_for('log_canned') }}">Run a canned query &rarr;</a></p>
 </div>
 {% endif %}

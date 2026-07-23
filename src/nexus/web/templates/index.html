@@ -6,9 +6,34 @@
 </div>
 <div class="grid">
   <div class="card">
-    <h3>Cryptography</h3>
+    <h3>Crypt Detect</h3>
     <p>Detect encodings, classical ciphers, and modern encryption from an input string.</p>
     <a href="{{ url_for('crypt_detect') }}"><button>Open</button></a>
+  </div>
+  <div class="card">
+    <h3>Crypt Codec</h3>
+    <p>Encode/decode base64, base32, base85, hex, URL, and ROT-N.</p>
+    <a href="{{ url_for('crypt_codec') }}"><button>Open</button></a>
+  </div>
+  <div class="card">
+    <h3>Hash Identifier</h3>
+    <p>Identify the likely algorithm behind a hash string.</p>
+    <a href="{{ url_for('crypt_hash_id') }}"><button>Open</button></a>
+  </div>
+  <div class="card">
+    <h3>XOR Toolkit</h3>
+    <p>XOR encode/decode, or brute-force a single-byte key.</p>
+    <a href="{{ url_for('crypt_xor') }}"><button>Open</button></a>
+  </div>
+  <div class="card">
+    <h3>IOC Extraction</h3>
+    <p>Pull IPs, domains, URLs, emails, hashes, CVEs, and crypto addresses out of pasted text.</p>
+    <a href="{{ url_for('ioc_extract') }}"><button>Open</button></a>
+  </div>
+  <div class="card">
+    <h3>Secrets Scan</h3>
+    <p>Scan text/code for exposed API keys, tokens, and private keys. Matches are redacted.</p>
+    <a href="{{ url_for('secrets_scan') }}"><button>Open</button></a>
   </div>
   <div class="card">
     <h3>OSINT / Metadata</h3>
@@ -26,9 +51,14 @@
     <a href="{{ url_for('log_canned') }}"><button>Open</button></a>
   </div>
   <div class="card">
-    <h3>Enumeration</h3>
+    <h3>Language ID</h3>
     <p>Identify the programming language of a code snippet.</p>
     <a href="{{ url_for('enum_code_id') }}"><button>Open</button></a>
+  </div>
+  <div class="card">
+    <h3>Audit Trail</h3>
+    <p>Browse everything this tool has analyzed - the same log the CLI writes to.</p>
+    <a href="{{ url_for('audit_log_view') }}"><button>Open</button></a>
   </div>
 </div>
 {% endblock %}

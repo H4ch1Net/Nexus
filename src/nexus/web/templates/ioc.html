@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}IOC Extraction - Nexus{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>IOC Extraction</h2>
+  <p>Pull indicators of compromise out of pasted text: IPs, domains, URLs, emails, hashes, CVEs, MAC addresses, crypto addresses.</p>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post">
+    <label for="inline">Text</label>
+    <textarea id="inline" name="inline" placeholder="Paste an email, log line, or report...">{{ inline }}</textarea>
+    <button type="submit">Extract</button>
+  </form>
+</div>
+{% if result %}
+<div class="card">
+  <div class="result-header">
+    <h3>{{ result.total_matches }} indicator(s) found</h3>
+    <button class="secondary" data-copy-target="result-pre">Copy JSON</button>
+  </div>
+  {% if result.iocs %}
+    {% for category, values in result.iocs.items() %}
+    <p style="margin-bottom:0.3rem;"><span class="badge badge-ok">{{ category }}</span> &times; {{ values|length }}</p>
+    <table style="margin-bottom:1rem;">
+      {% for v in values %}
+      <tr><td class="mono">{{ v }}</td></tr>
+      {% endfor %}
+    </table>
+    {% endfor %}
+  {% else %}
+    <p><em>No indicators found.</em></p>
+  {% endif %}
+  <details>
+    <summary>Raw JSON</summary>
+    <pre id="result-pre">{{ result_json }}</pre>
+  </details>
+</div>
+{% endif %}
+{% endblock %}

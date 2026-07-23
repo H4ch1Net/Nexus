@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Audit Trail - Nexus{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>Audit Trail</h2>
+  <p>Every action run through the CLI or this web UI is appended to a local, tamper-evident JSONL log (payloads are hashed, never stored raw). Showing the last {{ limit }} entries, most recent first.</p>
+  <form method="get" style="display:flex; gap:0.75rem; align-items:end;">
+    <div style="flex:1;">
+      <label for="limit">Entries to show</label>
+      <input id="limit" type="number" name="limit" value="{{ limit }}" min="1" max="1000">
+    </div>
+    <button type="submit" style="margin-bottom:0.9rem;">Refresh</button>
+  </form>
+</div>
+<div class="card">
+  {% if entries %}
+  <table>
+    <tr>
+      <th>Time (UTC)</th><th>Interface</th><th>Module</th><th>Action</th><th>Target</th><th>OK</th><th>Notes</th>
+    </tr>
+    {% for e in entries %}
+    <tr>
+      <td class="mono">{{ e.timestamp_utc }}</td>
+      <td>{{ e.interface or "cli" }}</td>
+      <td>{{ e.module }}</td>
+      <td>{{ e.action }}</td>
+      <td class="mono">{{ e.target }}</td>
+      <td>
+        {% if e.success_bool %}<span class="badge badge-ok">ok</span>{% else %}<span class="badge badge-high">fail</span>{% endif %}
+      </td>
+      <td>{{ e.notes }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p><em>No audit log entries yet.</em></p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Hash Identifier - Nexus{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>Hash Identifier</h2>
+  <p>Identify the likely algorithm(s) behind a hash string by pattern and length.</p>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post">
+    <label for="inline">Hash</label>
+    <textarea id="inline" name="inline" placeholder="5f4dcc3b5aa765d61d8327deb882cf99">{{ inline }}</textarea>
+    <button type="submit">Identify</button>
+  </form>
+</div>
+{% if result_json %}
+<div class="card">
+  <div class="result-header">
+    <h3>Result</h3>
+    <button class="secondary" data-copy-target="result-pre">Copy</button>
+  </div>
+  <pre id="result-pre">{{ result_json }}</pre>
+</div>
+{% endif %}
+{% endblock %}

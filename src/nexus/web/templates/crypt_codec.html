@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Crypt Codec - Nexus{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>Encode / Decode</h2>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post">
+    <div class="pill-group">
+      <label><input type="radio" name="direction" value="encode" {% if direction == 'encode' %}checked{% endif %}> Encode</label>
+      <label><input type="radio" name="direction" value="decode" {% if direction == 'decode' %}checked{% endif %}> Decode</label>
+    </div>
+
+    <label for="inline">Input</label>
+    <textarea id="inline" name="inline" placeholder="Hello World!">{{ inline }}</textarea>
+
+    <label for="scheme">Scheme</label>
+    <select id="scheme" name="scheme">
+      {% for s in schemes %}
+      <option value="{{ s }}" {% if s == scheme %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="shift">Shift (only used by 'rot')</label>
+    <input id="shift" type="number" name="shift" value="{{ shift }}">
+
+    <button type="submit">Run</button>
+  </form>
+</div>
+{% if output is not none %}
+<div class="card">
+  <div class="result-header">
+    <h3>Result</h3>
+    <button class="secondary" data-copy-target="result-pre">Copy</button>
+  </div>
+  <pre id="result-pre">{{ output }}</pre>
+</div>
+{% endif %}
+{% endblock %}

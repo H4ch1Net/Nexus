@@ -20,7 +20,11 @@
 </div>
 {% if formatted %}
 <div class="card">
-  <pre>{{ formatted }}</pre>
+  <div class="result-header">
+    <h3>Result</h3>
+    <button class="secondary" data-copy-target="result-pre">Copy</button>
+  </div>
+  <pre id="result-pre">{{ formatted }}</pre>
 </div>
 {% endif %}
 {% endblock %}

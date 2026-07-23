@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}XOR Toolkit - Nexus{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>XOR Toolkit</h2>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post">
+    <div class="pill-group">
+      <label><input type="radio" name="mode" value="apply" {% if mode == 'apply' %}checked{% endif %}> Apply key</label>
+      <label><input type="radio" name="mode" value="bruteforce" {% if mode == 'bruteforce' %}checked{% endif %}> Brute-force single byte</label>
+    </div>
+
+    <label for="inline">Input</label>
+    <textarea id="inline" name="inline" placeholder="48656c6c6f">{{ inline }}</textarea>
+
+    <label for="input_format">Input format</label>
+    <select id="input_format" name="input_format">
+      <option value="hex" {% if input_format == 'hex' %}selected{% endif %}>hex</option>
+      <option value="text" {% if input_format == 'text' %}selected{% endif %}>text</option>
+    </select>
+
+    <label for="key">Key (only used for "Apply key")</label>
+    <input id="key" type="text" name="key" value="{{ key }}">
+
+    <label for="key_format">Key format</label>
+    <select id="key_format" name="key_format">
+      <option value="text" {% if key_format == 'text' %}selected{% endif %}>text</option>
+      <option value="hex" {% if key_format == 'hex' %}selected{% endif %}>hex</option>
+    </select>
+
+    <button type="submit">Run</button>
+  </form>
+</div>
+{% if result_json %}
+<div class="card">
+  <div class="result-header">
+    <h3>Result</h3>
+    <button class="secondary" data-copy-target="result-pre">Copy</button>
+  </div>
+  <pre id="result-pre">{{ result_json }}</pre>
+</div>
+{% endif %}
+{% endblock %}

@@ -16,7 +16,11 @@
 </div>
 {% if result_json %}
 <div class="card">
-  <pre>{{ result_json }}</pre>
+  <div class="result-header">
+    <h3>Result</h3>
+    <button class="secondary" data-copy-target="result-pre">Copy</button>
+  </div>
+  <pre id="result-pre">{{ result_json }}</pre>
 </div>
 {% endif %}
 {% endblock %}

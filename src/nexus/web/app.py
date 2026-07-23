@@ -183,4 +183,162 @@ def create_app(cfg) -> Flask:
         return render_template("enum.html", result_json=_json_or_none(result), error=error,
                                 inline=inline, filename=filename or "")
 
+    # -------- CRYPT: codec / hash-id / xor --------
+    @app.route("/crypt/codec", methods=["GET", "POST"])
+    def crypt_codec():
+        from nexus.modules.cryptography.codec import encode, decode, CodecError, SCHEMES
+
+        output = None
+        error = None
+        inline = ""
+        scheme = "base64"
+        direction = "encode"
+        shift = 13
+
+        if request.method == "POST":
+            inline = request.form.get("inline", "")
+            scheme = request.form.get("scheme", "base64")
+            direction = request.form.get("direction", "encode")
+            shift = int(request.form.get("shift", 13) or 13)
+            if not inline:
+                error = "Input is required."
+            else:
+                try:
+                    fn = encode if direction == "encode" else decode
+                    output = fn(inline, scheme, shift=shift)
+                    audit(cfg, module="crypt", action=f"{direction}:{scheme}", target="[inline]",
+                          success_bool=True, interface="web")
+                except CodecError as e:
+                    error = str(e)
+                    audit(cfg, module="crypt", action=f"{direction}:{scheme}", target="[inline]",
+                          success_bool=False, notes=f"error: {e}", interface="web")
+
+        return render_template("crypt_codec.html", output=output, error=error, inline=inline,
+                                scheme=scheme, direction=direction, shift=shift, schemes=SCHEMES)
+
+    @app.route("/crypt/hash-id", methods=["GET", "POST"])
+    def crypt_hash_id():
+        from nexus.modules.cryptography.hashid import identify_hash
+
+        result = None
+        error = None
+        inline = ""
+
+        if request.method == "POST":
+            inline = request.form.get("inline", "")
+            if not inline:
+                error = "Input is required."
+            else:
+                result = identify_hash(inline)
+                audit(cfg, module="crypt", action="hash-id", target="[inline]",
+                      success_bool=bool(result["candidates"]),
+                      notes=f"candidates={len(result['candidates'])}", interface="web")
+
+        return render_template("crypt_hashid.html", result_json=_json_or_none(result),
+                                error=error, inline=inline)
+
+    @app.route("/crypt/xor", methods=["GET", "POST"])
+    def crypt_xor():
+        from nexus.modules.cryptography.xor import apply, bruteforce, XorError
+
+        result = None
+        error = None
+        inline = ""
+        key = ""
+        input_format = "hex"
+        key_format = "text"
+        mode = "apply"
+
+        if request.method == "POST":
+            inline = request.form.get("inline", "")
+            key = request.form.get("key", "")
+            input_format = request.form.get("input_format", "hex")
+            key_format = request.form.get("key_format", "text")
+            mode = request.form.get("mode", "apply")
+            if not inline:
+                error = "Input is required."
+            else:
+                try:
+                    if mode == "bruteforce":
+                        result = bruteforce(inline, input_format=input_format, top=10)
+                        audit(cfg, module="crypt", action="xor:bruteforce", target="[inline]",
+                              success_bool=True, interface="web")
+                    elif not key:
+                        error = "Key is required unless using bruteforce."
+                    else:
+                        result = apply(inline, key, input_format=input_format, key_format=key_format)
+                        audit(cfg, module="crypt", action="xor:apply", target="[inline]",
+                              success_bool=True, interface="web")
+                except XorError as e:
+                    error = str(e)
+                    audit(cfg, module="crypt", action="xor", target="[inline]",
+                          success_bool=False, notes=f"error: {e}", interface="web")
+
+        return render_template("crypt_xor.html", result_json=_json_or_none(result), error=error,
+                                inline=inline, key=key, input_format=input_format,
+                                key_format=key_format, mode=mode)
+
+    # -------- IOC --------
+    @app.route("/ioc/extract", methods=["GET", "POST"])
+    def ioc_extract():
+        from nexus.modules.ioc.service import extract
+
+        result = None
+        error = None
+        inline = ""
+
+        if request.method == "POST":
+            inline = request.form.get("inline", "")
+            if not inline:
+                error = "Input is required."
+            else:
+                result = extract(inline)
+                audit(cfg, module="ioc", action="extract", target="[inline]",
+                      success_bool=result["total_matches"] > 0,
+                      notes=f"matches={result['total_matches']}", interface="web")
+
+        return render_template("ioc.html", result=result, result_json=_json_or_none(result),
+                                error=error, inline=inline)
+
+    # -------- SECRETS --------
+    @app.route("/secrets/scan", methods=["GET", "POST"])
+    def secrets_scan():
+        from nexus.modules.secrets.service import scan
+
+        result = None
+        error = None
+        inline = ""
+
+        if request.method == "POST":
+            inline = request.form.get("inline", "")
+            if not inline:
+                error = "Input is required."
+            else:
+                result = scan(inline)
+                audit(cfg, module="secrets", action="scan", target="[inline]",
+                      success_bool=result["findings_count"] > 0,
+                      notes=f"findings={result['findings_count']}", interface="web")
+
+        return render_template("secrets.html", result=result, result_json=_json_or_none(result),
+                                error=error, inline=inline)
+
+    # -------- AUDIT LOG --------
+    @app.route("/audit")
+    def audit_log_view():
+        limit = request.args.get("limit", 100, type=int) or 100
+        limit = max(1, min(limit, 1000))
+        entries = []
+        if cfg.audit_log.exists():
+            with cfg.audit_log.open("r", encoding="utf-8") as f:
+                lines = f.readlines()
+            for line in reversed(lines[-limit:]):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    entries.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+        return render_template("audit.html", entries=entries, limit=limit)
+
     return app
