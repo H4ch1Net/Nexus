@@ -87,6 +87,16 @@ nexus enum code-id -i "def hello(): print('hi')"
 | `compact` | Table view for quick scanning |
 | `json` | Raw JSON for scripting and piping |
 
+## Data & storage
+
+Everything stays on your machine. Nexus reads an optional config from
+`~/.nexus/config.toml` (override with `--config`) and writes to `~/.nexus/`:
+
+- `audit.log` — one JSON line per command (module, action, target, timestamp)
+- `duckdb/nexus.duckdb` and `parquet/` — ingested log datasets
+
+Delete `~/.nexus/` at any time to clear all local state.
+
 ## Development
 
 Run from a local clone:
