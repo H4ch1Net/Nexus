@@ -87,6 +87,17 @@ nexus enum code-id -i "def hello(): print('hi')"
 | `compact` | Table view for quick scanning |
 | `json` | Raw JSON for scripting and piping |
 
+## Development
+
+Run from a local clone:
+
+```bash
+git clone https://github.com/H4ch1Net/Nexus.git
+cd Nexus
+pip install -e ".[dev]"
+pytest
+```
+
 ## Update / Uninstall
 
 **Linux (pipx)**

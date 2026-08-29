@@ -16,8 +16,15 @@ dependencies = [
   "pillow>=10.0"
 ]
 
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
 [project.scripts]
 nexus = "nexus.cli:cli"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/nexus"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
