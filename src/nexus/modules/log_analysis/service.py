@@ -1,6 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import pandas as pd
 import pyarrow as pa
@@ -10,12 +10,16 @@ from nexus.core.storage import duck_connect
 
 def _dataset_id(path: Path) -> str:
     stem = path.stem
-    ts = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
     return f"{stem}-{ts}"
 
 
 def _quote_ident(name: str) -> str:
     return '"' + name.replace('"', '""') + '"'
+
+
+def _quote_literal(value: str) -> str:
+    return "'" + value.replace("'", "''") + "'"
 
 
 def _normalize_obj(obj):
@@ -59,7 +63,12 @@ def ingest(cfg, path: Path) -> dict:
     con = duck_connect(cfg.data_dir / "duckdb")
     tbl = _quote_ident(cfg.default_table)
     pattern = str(pq_dir / "*.parquet")
-    con.execute(f"CREATE OR REPLACE VIEW {tbl} AS SELECT * FROM read_parquet(?)", [pattern])
+    # DuckDB does not allow bind parameters inside CREATE VIEW, so the path
+    # (which the tool controls, under the configured data dir) is inlined as a
+    # safely-escaped string literal.
+    con.execute(
+        f"CREATE OR REPLACE VIEW {tbl} AS SELECT * FROM read_parquet({_quote_literal(pattern)})"
+    )
 
     return {"dataset_id": dsid, "table": cfg.default_table, "rows": int(len(rows))}
 
