@@ -1,15 +1,14 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/brand/banner-carbon.png">
+  <img src="assets/brand/banner-paper.png" alt="nexus: field instrument for unknown data" width="100%">
+</picture>
+
 <div align="center">
 
-# ✦ Nexus
-
-**A local-first terminal toolkit for cryptography, OSINT, log analytics, and code enumeration.**
-
-Runs entirely offline. No accounts, no telemetry, no outbound requests.
-
-[![Python](https://img.shields.io/badge/python-3.11%2B-3776ab?logo=python&logoColor=white)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-35d6c0)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-555)](#requirements)
-[![Offline](https://img.shields.io/badge/network-offline-57d977)](#privacy)
+[![Python](https://img.shields.io/badge/python-3.11%2B-1A1915?style=flat-square&labelColor=1A1915&color=E5531A)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-1A1915?style=flat-square&labelColor=1A1915&color=E5531A)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-linux%20·%20macos%20·%20windows-1A1915?style=flat-square&labelColor=1A1915&color=6B675D)](#requirements)
+[![Network](https://img.shields.io/badge/network-offline-1A1915?style=flat-square&labelColor=1A1915&color=6B675D)](#privacy)
 
 </div>
 
@@ -21,14 +20,47 @@ your machine against data you already have.
 
 ## Screenshots
 
-<div align="center">
+Screenshots follow your GitHub theme: Paper in light mode, Carbon in dark mode.
 
-<img src="assets/web-detect.png" width="49%" alt="Detect view" />
-<img src="assets/web-decode.png" width="49%" alt="Decode / magic view" />
-<img src="assets/web-iocs.png" width="49%" alt="IOC extraction view" />
-<img src="assets/web-hash.png" width="49%" alt="Hash view" />
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/screens/web-decode-carbon.png">
+  <img src="assets/screens/web-decode-paper.png" alt="Web console: auto-decode finds base64 → base64 and recovers the flag" width="100%">
+</picture>
 
-</div>
+<table>
+<tr>
+<td width="50%">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/screens/web-detect-carbon.png">
+  <img src="assets/screens/web-detect-paper.png" alt="Detect: entropy and index-of-coincidence gauges with ranked candidates">
+</picture>
+<p align="center"><sub><b>01.1 Detect</b> · entropy and IC gauges with reference markers</sub></p>
+</td>
+<td width="50%">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/screens/web-iocs-carbon.png">
+  <img src="assets/screens/web-iocs-paper.png" alt="IOC Extract: indicator tally and grouped table">
+</picture>
+<p align="center"><sub><b>03.1 IOC Extract</b> · tally and grouped indicators</sub></p>
+</td>
+</tr>
+<tr>
+<td width="50%">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/screens/cli-detect-carbon.png">
+  <img src="assets/screens/cli-detect-paper.png" alt="CLI: crypt detect --format detailed">
+</picture>
+<p align="center"><sub><code>nexus crypt detect -f detailed</code></sub></p>
+</td>
+<td width="50%">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/screens/cli-decode-carbon.png">
+  <img src="assets/screens/cli-decode-paper.png" alt="CLI: crypt decode in auto mode">
+</picture>
+<p align="center"><sub><code>nexus crypt decode</code> (auto)</sub></p>
+</td>
+</tr>
+</table>
 
 ## Features
 
@@ -163,7 +195,15 @@ nexus serve --port 9000 --no-open
 The console exposes every text-based tool through a browser. It binds to loopback
 by default and makes no outbound requests, so it is safe to run on an analysis box.
 
-The layout is responsive and works on a phone-width screen.
+| Key | Action |
+|-----|--------|
+| <kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>Enter</kbd> | Run the current tool |
+| <kbd>/</kbd> | Focus the input |
+| <kbd>[</kbd> <kbd>]</kbd> | Previous / next tool |
+
+Every tool has sample specimens in its empty state, a Copy action on each result,
+and a Paper / Carbon theme switch that follows your system setting until you pick
+one. The layout is responsive down to phone width.
 
 > [!NOTE]
 > The web UI covers text operations. File-based tools (`osint meta`, `osint strings`,
@@ -171,10 +211,25 @@ The layout is responsive and works on a phone-width screen.
 
 <details>
 <summary>Mobile layout</summary>
-
-<img src="assets/web-mobile.png" width="320" alt="Mobile layout" />
+<br>
+<img src="assets/screens/web-mobile.png" width="560" alt="Mobile layout in Paper and Carbon themes" />
 
 </details>
+
+## Design
+
+Nexus uses one visual system across the web console, the terminal, and the docs,
+called **Field Instrument**: quiet surfaces, precise type, and a single signal color,
+so the readout is the loudest thing on screen.
+
+| | |
+|---|---|
+| **Mark** | A Polybius square (5×5 cipher grid) whose filled cells spell **N**; the diagonal carries the signal color |
+| **Type** | IBM Plex Sans, Plex Mono, and Plex Sans Condensed, bundled locally (OFL) |
+| **Color** | Paper and Carbon neutrals with signal orange; text clears 4.5:1 and controls clear 3:1 in both themes |
+| **Instruments** | 20-cell segmented meters and reference-marked gauges, mirrored in CLI output |
+
+See [docs/DESIGN.md](docs/DESIGN.md) for tokens and rules.
 
 ## Output formats (`crypt detect`)
 
@@ -220,13 +275,19 @@ src/nexus/
 │   ├── config.py          # TOML config loading
 │   ├── audit.py           # append-only JSONL audit log
 │   ├── storage.py         # DuckDB connection
-│   └── render.py          # shared color/table/bar output helpers
+│   └── render.py          # terminal design system: meters, scales, tables, mark
 ├── modules/
 │   ├── cryptography/      # detect, decode + magic, hashing
 │   ├── enumeration/       # code-id, file-id, ports
 │   ├── osint/             # exif metadata, IOC extraction, defang
 │   └── log_analysis/      # ingest, canned queries, SQL, info
-└── web/                   # stdlib server + single-page console
+└── web/
+    ├── server.py          # stdlib HTTP server and JSON API
+    └── static/            # console: index.html, style.css, app.js, fonts/
+assets/
+├── brand/                 # banners, social preview, mark (SVG)
+└── screens/               # README screenshots (generated)
+scripts/make_assets.py     # regenerates everything in assets/
 ```
 
 Each module keeps its logic in `service.py` / helper files and its CLI surface in
@@ -242,6 +303,17 @@ pytest
 ```
 
 The suite covers every module, the web API, and the CLI.
+
+Screenshots, banners, and the social preview are generated from the running
+product, so they stay in sync with the UI:
+
+```bash
+pip install -e ".[docs]"
+python scripts/make_assets.py   # set CHROMIUM_PATH to use a specific Chromium build
+```
+
+Set `NEXUS_FORCE_COLOR=1` to keep CLI colors when piping (for example into
+`less -R`); `NO_COLOR` always disables them.
 
 ## Troubleshooting
 

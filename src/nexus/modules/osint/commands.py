@@ -10,23 +10,22 @@ from nexus.core.audit import audit
 
 
 def _format_meta(res: dict) -> str:
-    out = [render.heading("File metadata"), ""]
+    out = [render.header("Metadata", "03.3", "osint"), ""]
     out.append(render.kv([
         ("file", res["file"]),
-        ("size", f"{res['file_size_bytes']} bytes"),
+        ("size", f"{res['file_size_bytes']:,} bytes"),
         ("mime", res["file_mime"]),
+        *res["hashes"].items(),
     ]))
-    out += ["", render.c("hashes", "bold"), render.kv(list(res["hashes"].items()))]
     if res["metadata"]:
-        out += ["", render.c("exif", "bold"), render.kv(list(res["metadata"].items()))]
+        out += ["", "  " + render.label("exif"), render.kv(list(res["metadata"].items()))]
     if res.get("gps"):
         g = res["gps"]
-        out += ["", render.c("gps", "bold"),
-                render.kv([("lat", g["lat"]), ("lon", g["lon"]), ("alt", g.get("alt"))])]
-        if res.get("map_link"):
-            out.append(render.c(f"  map: {res['map_link']}", "blue"))
+        out += ["", "  " + render.label("gps"),
+                render.kv([("lat", g["lat"]), ("lon", g["lon"]), ("alt", g.get("alt")),
+                           ("map", res.get("map_link"))])]
     else:
-        out += ["", render.c("no EXIF/GPS metadata found", "gray")]
+        out += ["", "  " + render.note("No EXIF or GPS metadata found.")]
     return "\n".join(out)
 
 
@@ -45,7 +44,7 @@ def osint_meta(ctx, path, as_json):
     res = extract_meta(path)
     audit(ctx.obj, module="osint", action="meta", target=path, success_bool=bool(res))
     if not res:
-        click.echo(render.c("file not found or unreadable", "red"), err=True)
+        click.echo(render.fault("file not found or unreadable"), err=True)
         sys.exit(3)
     click.echo(render.dumps(res) if as_json else _format_meta(res))
 
@@ -64,20 +63,20 @@ def osint_strings(ctx, path, min_len, as_json):
     if as_json:
         click.echo(render.dumps(res))
     else:
-        out = [render.heading("IOC extraction"), ""]
+        out = [render.header("IOC Extract", "03.1", "osint"), ""]
         out.append(render.kv([("file", res["file"]),
-                              ("strings", res["string_count"]),
+                              ("strings", f"{res['string_count']:,}"),
                               ("indicators", res["ioc_total"])]))
         if res["iocs"]:
-            out.append("")
+            rows = []
             for kind, values in res["iocs"].items():
-                out.append(render.c(f"  {kind} ({len(values)})", "bold"))
-                for v in values[:20]:
-                    out.append(f"    {v}")
+                for i, v in enumerate(values[:20]):
+                    rows.append((render.label(kind) if i == 0 else "", v))
                 if len(values) > 20:
-                    out.append(render.c(f"    ... {len(values) - 20} more", "gray"))
+                    rows.append(("", render.note(f"… {len(values) - 20} more")))
+            out += ["", render.table(["type", "indicator"], rows)]
         else:
-            out.append(render.c("  no indicators found", "gray"))
+            out += ["", "  " + render.note("No indicators found.")]
         click.echo("\n".join(out))
     sys.exit(0 if res["ioc_total"] else 3)
 

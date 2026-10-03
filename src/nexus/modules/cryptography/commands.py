@@ -8,10 +8,6 @@ import click
 from nexus.core import render
 from nexus.core.audit import audit
 
-
-# ----------------------------------------------------------------------------
-# Human-readable formatters for `crypt detect`
-# ----------------------------------------------------------------------------
 _CATEGORY = {
     "encoder": "encoder",
     "armor": "armor",
@@ -21,74 +17,79 @@ _CATEGORY = {
 }
 
 
+def _name(c: dict) -> str:
+    return c["name"].replace("_", " ")
+
+
+def _cat(c: dict) -> str:
+    return _CATEGORY.get(c.get("category", ""), c.get("category", ""))
+
+
+# ----------------------------------------------------------------------------
+# `crypt detect` formatters
+# ----------------------------------------------------------------------------
 def format_simple(result: dict) -> str:
     candidates = result["candidates"]
     if not candidates:
-        return render.c("No matches found", "yellow")
+        return render.note("No known pattern matched this input.")
     top = candidates[0]
-    name = top["name"].replace("_", " ").title()
-    score = top["score"]
-    verb = "Detected" if score >= 0.85 else "Likely" if score >= 0.7 else "Possibly"
-    line = f"{render.c(verb, 'green' if score >= 0.7 else 'yellow')}: {render.c(name, 'bold')} ({score:.0%} confidence)"
-    alts = [c["name"].replace("_", " ").title() for c in candidates[1:4] if c["score"] > 0.65]
+    line = (f"{render.c('■', 'signal')} {render.c(_name(top), 'bold')}  "
+            f"{render.meter(top['score'], 12)}  {render.label(render.confidence_word(top['score']))}"
+            f"  {render.note(_cat(top))}")
+    alts = [_name(c) for c in candidates[1:4] if c["score"] > 0.65]
     if alts:
-        line += "\n" + render.c(f"  also consider: {', '.join(alts)}", "gray")
+        line += "\n  " + render.label("also") + "  " + render.note(" · ".join(alts))
     return line
 
 
-def format_compact(result: dict) -> str:
+def _metric_line(result: dict) -> str:
     m = result["metrics"]
-    header = render.c(
-        f"input {result['input_length']} chars  "
-        f"entropy {m['entropy']:.2f}  IC {m['index_of_coincidence']:.4f}", "gray")
+    return render.note(f"{result['input_length']} chars · entropy {m['entropy']:.2f} · "
+                       f"IC {m['index_of_coincidence']:.4f}")
+
+
+def _candidate_table(candidates: list[dict]) -> str:
     rows = [
-        (i, c["name"].replace("_", " ").title(), f"{c['score']:.0%}",
-         _CATEGORY.get(c.get("category", ""), c.get("category", "")))
-        for i, c in enumerate(result["candidates"], 1)
+        (render.c(f"{i:02d}", "signal" if i == 1 else "muted"), _name(c), render.note(_cat(c)),
+         f"{render.meter(c['score'])}  {render.label(render.confidence_word(c['score']))}")
+        for i, c in enumerate(candidates, 1)
     ]
-    return header + "\n\n" + render.table(["#", "name", "score", "category"], rows)
+    return render.table(["#", "candidate", "category", "confidence"], rows)
+
+
+def format_compact(result: dict) -> str:
+    if not result["candidates"]:
+        return _metric_line(result) + "\n\n" + render.note("No known pattern matched this input.")
+    return "  " + _metric_line(result) + "\n\n" + _candidate_table(result["candidates"])
 
 
 def format_detailed(result: dict) -> str:
     m = result["metrics"]
-    out = [render.heading("Cryptographic detection"), ""]
-    out.append(render.kv([
-        ("input length", f"{result['input_length']} chars"),
-        ("entropy", f"{m['entropy']:.4f} bits/byte"),
-        ("printable", f"{m['printable_ratio']:.1%}"),
-        ("index of coincidence", f"{m['index_of_coincidence']:.4f}"),
-    ]))
-
     ent, ic = m["entropy"], m["index_of_coincidence"]
+    ent_axis, ent_refs = render.scale(ent, 0, 8, refs={"text": 4.2, "base64": 6.0})
+    ic_axis, ic_refs = render.scale(ic, 0, 0.1, refs={"random": 0.038, "english": 0.067})
+
     hint = ("high entropy: modern encryption or compression" if ent > 7.5
             else "medium entropy: encoding or classical cipher" if ent > 6.0
             else "low entropy: plaintext or simple substitution")
-    out += ["", render.c("  interpretation: " + hint, "gray")]
     if ic > 0.06:
-        out.append(render.c("  high IC: monoalphabetic or transposition (letters preserved)", "gray"))
+        hint += "; high IC: letters preserved (monoalphabetic or transposition)"
     elif ic > 0.045:
-        out.append(render.c("  medium IC: polyalphabetic cipher", "gray"))
+        hint += "; medium IC: polyalphabetic cipher"
     elif ic > 0:
-        out.append(render.c("  low IC: random data or strong encryption", "gray"))
+        hint += "; low IC: random data or strong encryption"
 
+    out = [render.header("Detect", "01.1", "cryptography"), ""]
+    out.append(render.kv([
+        ("length", f"{result['input_length']} chars · printable {m['printable_ratio']:.0%}"),
+        ("entropy", f"{ent:.4f} bits/byte\n{ent_axis}\n{ent_refs}"),
+        ("index of coincidence", f"{ic:.4f}\n{ic_axis}\n{ic_refs}"),
+    ]))
+    out += ["", "  " + render.note(hint), ""]
     if not result["candidates"]:
-        out += ["", render.c("No strong matches found.", "yellow")]
-        return "\n".join(out)
-
-    out += ["", render.heading(f"Candidates ({len(result['candidates'])})"), ""]
-    for i, cand in enumerate(result["candidates"], 1):
-        name = cand["name"].replace("_", " ").title()
-        score = cand["score"]
-        out.append(f"  {i}. {render.c(name, 'bold')}  {render.bar(score)} {score:.0%} "
-                   f"({render.confidence_word(score)})")
-        cat = _CATEGORY.get(cand.get("category", ""), cand.get("category", ""))
-        out.append(render.c(f"     {cat}", "gray"))
-        params = cand.get("params")
-        if params:
-            for k, v in params.items():
-                if isinstance(v, list):
-                    v = ", ".join(str(x) for x in v[:6]) + (" ..." if len(v) > 6 else "")
-                out.append(render.c(f"     {k}: {v}", "gray"))
+        out.append("  " + render.note("No known pattern matched this input."))
+    else:
+        out.append(_candidate_table(result["candidates"]))
     return "\n".join(out)
 
 
@@ -122,10 +123,14 @@ def crypt_detect(ctx, inline, fmt, top):
             click.echo(format_simple(res))
         sys.exit(0 if res["candidates"] else 3)
     except Exception as e:  # pragma: no cover - defensive
-        click.echo(render.c(f"error: {e}", "red"), err=True)
+        click.echo(render.fault(str(e)), err=True)
         audit(ctx.obj, module="crypt", action="detect", target="[inline]",
               success_bool=False, notes=f"error: {e}")
         sys.exit(1)
+
+
+def _chain(recipe: list[str]) -> str:
+    return render.note(" → ").join(recipe)
 
 
 @crypt.command("decode")
@@ -154,22 +159,30 @@ def crypt_decode(ctx, inline, codec, shift, key, depth, as_json):
         if as_json:
             click.echo(render.dumps(payload))
         elif not results:
-            click.echo(render.c("No readable decoding found.", "yellow"))
-            sys.exit(3)
+            click.echo(render.note("No readable decoding found. Try a specific codec with -c."))
         else:
-            lines = [render.heading("Auto-decode candidates"), ""]
-            for r in results:
-                recipe = render.c(" -> ".join(r.recipe), "cyan")
-                lines.append(f"  {render.bar(r.score, 12)} {r.score:.0%}  {recipe}")
-                preview = r.output if len(r.output) <= 200 else r.output[:200] + " ..."
-                lines.append(render.c(f"     {preview!r}", "gray"))
+            best, rest = results[0], results[1:]
+            gutter = render.c("│", "signal")
+            lines = [render.header("Decode", "01.2", "cryptography"), ""]
+            lines.append(f"  {render.c('01', 'signal')}  {_chain(best.recipe)}  "
+                         f"{render.meter(best.score, 12)}  {render.c('BEST', 'signal', 'bold')}")
+            for out_line in best.output.splitlines() or [""]:
+                lines.append(f"  {gutter} {render.c(out_line, 'bold')}")
+            if rest:
+                rows = []
+                for i, r in enumerate(rest, 2):
+                    preview = r.output.replace("\n", " ")
+                    preview = preview if len(preview) <= 40 else preview[:39] + "…"
+                    rows.append((render.c(f"{i:02d}", "muted"), render.meter(r.score, 8),
+                                 _chain(r.recipe), render.note(preview)))
+                lines += ["", render.table(["#", "score", "other recipes", "output"], rows)]
             click.echo("\n".join(lines))
         sys.exit(0 if results else 3)
 
     try:
         out = codecs.decode(inline, codec, shift=shift, key=key)
     except codecs.DecodeError as e:
-        click.echo(render.c(f"error: {e}", "red"), err=True)
+        click.echo(render.fault(str(e)), err=True)
         audit(ctx.obj, module="crypt", action="decode", target="[inline]",
               success_bool=False, notes=f"codec={codec} error: {e}")
         sys.exit(1)
@@ -201,7 +214,8 @@ def crypt_hash(ctx, inline, file, as_json):
     if as_json:
         click.echo(render.dumps({"target": target, "hashes": digests}))
     else:
-        click.echo(render.kv(list(digests.items())))
+        click.echo(render.header("Hash", "01.3", "cryptography") + "\n")
+        click.echo(render.kv([(k.replace("_", "-"), v) for k, v in digests.items()]))
 
 
 @crypt.command("hash-id")
@@ -216,10 +230,13 @@ def crypt_hash_id(ctx, inline, as_json):
     if as_json:
         click.echo(render.dumps({"input": inline.strip(), "candidates": cands}))
     elif not cands:
-        click.echo(render.c("No match. Not a recognized hash format.", "yellow"))
+        click.echo(render.note("Not a recognized hash format."))
     else:
-        rows = [(c["name"], f"{c['confidence']:.0%}", c["basis"]) for c in cands]
-        click.echo(render.table(["algorithm", "confidence", "basis"], rows))
+        rows = [(render.c(f"{i:02d}", "signal" if i == 1 else "muted"), c["name"],
+                 render.meter(c["confidence"]), render.note(c["basis"]))
+                for i, c in enumerate(cands, 1)]
+        click.echo(render.header("Hash ID", "01.4", "cryptography") + "\n")
+        click.echo(render.table(["#", "algorithm", "confidence", "basis"], rows))
     sys.exit(0 if cands else 3)
 
 
@@ -227,5 +244,9 @@ def crypt_hash_id(ctx, inline, as_json):
 def crypt_codecs():
     """List the codecs available to 'crypt decode'."""
     from nexus.modules.cryptography import codecs
-    click.echo(render.heading("Available codecs") + "\n")
-    click.echo("  " + "  ".join(codecs.list_codecs()))
+    names = codecs.list_codecs()
+    click.echo(render.header("Codecs", "01.2", "cryptography") + "\n")
+    per_row = 6
+    for i in range(0, len(names), per_row):
+        click.echo("  " + "".join(n.ljust(18) for n in names[i:i + per_row]).rstrip())
+    click.echo("\n  " + render.note("auto mode chains the parameter-free codecs; caesar takes --shift, xor takes --key"))

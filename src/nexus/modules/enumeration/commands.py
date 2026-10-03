@@ -9,14 +9,13 @@ from nexus.core import render
 from nexus.core.audit import audit
 
 
-def _format_langs(result: dict) -> str:
+def _format_langs(result: dict, title: str, code: str) -> str:
     cands = result["candidates"]
-    rows = [(c["language"], f"{c['confidence']:.0%}", c["evidence"], c.get("matched_rules", 0))
-            for c in cands]
-    top = cands[0]
-    head = (f"{render.c(top['language'], 'bold')} "
-            f"({top['confidence']:.0%}, via {top['evidence']})")
-    return head + "\n\n" + render.table(["language", "confidence", "evidence", "rules"], rows)
+    rows = [(render.c(f"{i:02d}", "signal" if i == 1 else "muted"), c["language"],
+             render.meter(c["confidence"]), render.note(c["evidence"]))
+            for i, c in enumerate(cands, 1)]
+    return (render.header(title, code, "enumeration") + "\n\n"
+            + render.table(["#", "language", "confidence", "evidence"], rows))
 
 
 @click.group()
@@ -34,7 +33,7 @@ def code_id(ctx, inline, as_json):
     res = detect_language(inline)
     audit(ctx.obj, module="enum", action="code-id", target="[inline]",
           success_bool=res["candidates"][0]["language"] != "Unknown")
-    click.echo(render.dumps(res) if as_json else _format_langs(res))
+    click.echo(render.dumps(res) if as_json else _format_langs(res, "Code ID", "02.1"))
     sys.exit(0 if res["candidates"][0]["language"] != "Unknown" else 3)
 
 
@@ -48,7 +47,7 @@ def file_id(ctx, path, as_json):
     res = detect_language_file(path)
     audit(ctx.obj, module="enum", action="file-id", target=path,
           success_bool=res["candidates"][0]["language"] != "Unknown")
-    click.echo(render.dumps(res) if as_json else _format_langs(res))
+    click.echo(render.dumps(res) if as_json else _format_langs(res, "File ID", "02.3"))
     sys.exit(0 if res["candidates"][0]["language"] != "Unknown" else 3)
 
 
@@ -67,8 +66,10 @@ def ports(ctx, query, as_json):
     if as_json:
         click.echo(render.dumps(res))
     elif not res["matches"]:
-        click.echo(render.c(f"No match for {query!r}.", "yellow"))
+        click.echo(render.note(f"No known port or service matches {query!r}."))
     else:
-        rows = [(m["port"], m["service"], m["protocol"], m["description"]) for m in res["matches"]]
-        click.echo(render.table(["port", "service", "proto", "description"], rows))
+        rows = [(render.c(m["port"], "bold"), m["service"], render.note(m["protocol"]), m["description"])
+                for m in res["matches"]]
+        click.echo(render.header("Ports", "02.2", "enumeration") + "\n")
+        click.echo(render.table(["port", "service", "proto", "description"], rows, align={0: "right"}))
     sys.exit(0 if res["matches"] else 3)

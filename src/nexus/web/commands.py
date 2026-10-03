@@ -14,13 +14,22 @@ from nexus.core import render
 @click.option("--open/--no-open", "open_browser", default=True, help="Open a browser window.")
 def serve(host, port, open_browser):
     """Start the offline web UI (binds to loopback by default)."""
+    from nexus import __version__
     from nexus.web.server import serve as make_server
 
-    httpd = make_server(host, port)
+    try:
+        httpd = make_server(host, port)
+    except OSError as e:
+        click.echo(render.fault(f"cannot bind {host}:{port} ({e.strerror or e}). Try --port."), err=True)
+        raise SystemExit(1)
     url = f"http://{host}:{port}/"
-    click.echo(render.c("Nexus web UI", "bold", "cyan"))
-    click.echo(render.kv([("url", url), ("bind", f"{host}:{port}")]))
-    click.echo(render.c("Press Ctrl+C to stop.", "gray"))
+    click.echo(render.lockup([
+        f"{render.c('nexus', 'bold')} {render.note('console ' + __version__)}",
+        render.c(url, "signal"),
+        render.note("local · offline · ctrl+c to stop"),
+    ]))
+    if host not in ("127.0.0.1", "localhost", "::1"):
+        click.echo("\n" + render.note(f"warning: bound to {host}; the console is reachable from your network."))
     if open_browser and host in ("127.0.0.1", "localhost"):
         try:
             webbrowser.open(url)
@@ -29,6 +38,6 @@ def serve(host, port, open_browser):
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
-        click.echo("\n" + render.c("stopped", "yellow"))
+        click.echo("\n" + render.note("stopped"))
     finally:
         httpd.server_close()

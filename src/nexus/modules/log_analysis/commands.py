@@ -13,7 +13,7 @@ from nexus.core.audit import audit
 
 def _print_rows(rows: list[dict]) -> str:
     if not rows:
-        return render.c("  (no rows)", "gray")
+        return "  " + render.note("No rows.")
     headers = list(rows[0].keys())
     return render.table(headers, [[r.get(h) for h in headers] for r in rows])
 
@@ -34,16 +34,17 @@ def log_ingest(ctx, path, as_json):
     audit(ctx.obj, module="log", action="ingest", target=path, success_bool=bool(res),
           notes=f"rows={res.get('rows', 0)}")
     if not res:
-        click.echo(render.c("no rows ingested (empty file?)", "yellow"), err=True)
+        click.echo(render.fault("no rows ingested (is the file empty?)"), err=True)
         sys.exit(1)
     if as_json:
         click.echo(render.dumps(res))
     else:
-        click.echo(render.c("ingested", "green") + " " + render.kv([
+        click.echo(render.header("Ingest", "04.1", "logs") + "\n")
+        click.echo(render.kv([
             ("dataset", res["dataset_id"]), ("table", res["table"]),
-            ("rows", res["rows"]), ("columns", len(res["columns"])),
+            ("rows", f"{res['rows']:,}"), ("columns", ", ".join(res["columns"])),
             ("malformed", res["malformed_lines"]),
-        ]).lstrip())
+        ]))
     sys.exit(0)
 
 
@@ -56,7 +57,7 @@ def log_canned(ctx, name, params, as_json):
     """Run a built-in analytics query. Omit NAME to list them."""
     from nexus.modules.log_analysis.service import run_canned, list_canned
     if not name:
-        click.echo(render.heading("Canned queries") + "\n")
+        click.echo(render.header("Canned queries", "04.2", "logs") + "\n")
         click.echo(render.kv(list(list_canned().items())))
         return
     res = run_canned(ctx.obj, name, _json.loads(params))
@@ -65,11 +66,12 @@ def log_canned(ctx, name, params, as_json):
     if as_json:
         click.echo(render.dumps(res))
     elif not ok:
-        click.echo(render.c(f"error: {res['error']}", "red"), err=True)
+        click.echo(render.fault(res["error"]), err=True)
     else:
+        click.echo(render.header(name.replace("_", " ").capitalize(), "04.2", "logs"))
         if res.get("sql"):
-            click.echo(render.c(res["sql"], "gray") + "\n")
-        click.echo(_print_rows(res["result"]))
+            click.echo("  " + render.note(res["sql"]))
+        click.echo("\n" + _print_rows(res["result"]))
     sys.exit(0 if ok else 3)
 
 
@@ -87,13 +89,15 @@ def log_query(ctx, sql, limit, as_json):
     if as_json:
         click.echo(render.dumps(res))
     elif not ok:
-        click.echo(render.c(f"error: {res['error']}", "red"), err=True)
+        click.echo(render.fault(res["error"]), err=True)
     else:
+        click.echo(render.header("Query", "04.3", "logs"))
+        click.echo("  " + render.note(res["sql"]) + "\n")
         click.echo(_print_rows(res["result"]))
-        note = f"{res['row_count']} row(s)"
+        note = f"{res['row_count']:,} row(s)"
         if res["truncated"]:
             note += f", showing first {limit}"
-        click.echo("\n" + render.c(note, "gray"))
+        click.echo("\n  " + render.note(note))
     sys.exit(0 if ok else 3)
 
 
@@ -108,15 +112,17 @@ def log_info(ctx, as_json):
     if as_json:
         click.echo(render.dumps(res))
         return
-    out = [render.heading("Log store"), "", render.kv([("data dir", res["data_dir"])])]
     at = res["active_table"]
-    out += ["", render.c(f"active table: {at['table']} "
-                         f"({at['row_count'] if at['row_count'] is not None else 'empty'})", "bold")]
+    out = [render.header("Log store", "04.4", "logs"), "", render.kv([
+        ("data dir", res["data_dir"]),
+        ("active table", at["table"]),
+        ("rows", f"{at['row_count']:,}" if at["row_count"] is not None else "empty"),
+    ])]
     if at["columns"]:
-        out.append(_print_rows(at["columns"]))
+        cols = [{"column": c["column_name"], "type": c["column_type"]} for c in at["columns"]]
+        out += ["", _print_rows(cols)]
     if res["datasets"]:
-        out += ["", render.c("datasets", "bold"),
-                _print_rows(res["datasets"])]
+        out += ["", _print_rows(res["datasets"])]
     else:
-        out += ["", render.c("no datasets ingested yet", "gray")]
+        out += ["", "  " + render.note("No datasets ingested yet. Start with: nexus log ingest -i events.jsonl")]
     click.echo("\n".join(out))

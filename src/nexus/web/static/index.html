@@ -4,52 +4,54 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Nexus Console</title>
+  <meta name="description" content="Offline analysis instrument: decode, hash, identify, and extract, entirely on this machine." />
+  <meta name="theme-color" content="#F7F6F1" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#1A1A18" media="(prefers-color-scheme: dark)" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preload" href="/fonts/ibm-plex-sans-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/fonts/ibm-plex-mono-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
+  <script>
+    // Resolve the theme before first paint so there is no flash.
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem("nexus.theme"); } catch (e) {}
+      if (t !== "paper" && t !== "carbon") {
+        t = window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "carbon" : "paper";
+      }
+      document.documentElement.setAttribute("data-theme", t);
+    })();
+  </script>
   <link rel="stylesheet" href="/style.css" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9C%A6%3C/text%3E%3C/svg%3E" />
 </head>
 <body>
+  <a class="skip" href="#bench">Skip to tool</a>
+
   <header class="topbar">
-    <div class="brand">
-      <span class="mark">✦</span>
-      <span class="name">nexus</span>
-      <span class="tag">console</span>
+    <a class="brand" href="#detect" aria-label="Nexus home">
+      <svg viewBox="0 0 38 38" aria-hidden="true" id="brand-mark"></svg>
+      <span class="word">nexus</span>
+      <span class="ver" id="version"></span>
+    </a>
+    <span class="divider" aria-hidden="true"></span>
+    <div class="status" title="All processing happens on this machine">
+      <span class="sq" aria-hidden="true"></span>
+      <span class="label">Local · offline</span>
+      <span class="code" id="origin"></span>
     </div>
-    <div class="meta">
-      <span id="version" class="pill">offline</span>
+    <span class="spacer"></span>
+    <div class="theme-switch" role="group" aria-label="Theme">
+      <button type="button" data-theme-set="paper">Paper</button>
+      <button type="button" data-theme-set="carbon">Carbon</button>
     </div>
   </header>
 
-  <div class="layout">
-    <nav class="sidebar" aria-label="Tools">
-      <div class="nav-group" data-group="Cryptography">
-        <h2>Cryptography</h2>
-        <button class="nav-item active" data-tool="detect">Detect</button>
-        <button class="nav-item" data-tool="decode">Decode / Magic</button>
-        <button class="nav-item" data-tool="hash">Hash</button>
-        <button class="nav-item" data-tool="hashid">Hash ID</button>
-      </div>
-      <div class="nav-group" data-group="Enumeration">
-        <h2>Enumeration</h2>
-        <button class="nav-item" data-tool="codeid">Code ID</button>
-        <button class="nav-item" data-tool="ports">Ports</button>
-      </div>
-      <div class="nav-group" data-group="OSINT">
-        <h2>OSINT</h2>
-        <button class="nav-item" data-tool="iocs">IOC Extract</button>
-        <button class="nav-item" data-tool="defang">Defang</button>
-      </div>
-    </nav>
-
-    <main class="main" id="main">
-      <section class="panel" id="panel">
-        <!-- rendered by app.js -->
-      </section>
+  <div class="shell">
+    <nav class="rail" id="rail" aria-label="Tools"></nav>
+    <main class="bench" id="bench" tabindex="-1">
+      <div class="bench-inner" id="panel"></div>
+      <noscript><p>The Nexus console needs JavaScript. Every tool is also available from the <code>nexus</code> CLI.</p></noscript>
     </main>
   </div>
-
-  <footer class="footer">
-    <span>local-first · no telemetry · all processing on this machine</span>
-  </footer>
 
   <script src="/app.js"></script>
 </body>

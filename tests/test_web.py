@@ -55,3 +55,11 @@ def test_path_traversal_blocked(live_server):
     with pytest.raises(urllib.error.HTTPError) as exc:
         urllib.request.urlopen(live_server + "/../server.py")
     assert exc.value.code == 404
+
+
+def test_brand_assets_served_with_types(live_server):
+    fav = urllib.request.urlopen(live_server + "/favicon.svg")
+    assert fav.headers["Content-Type"] == "image/svg+xml"
+    font = urllib.request.urlopen(live_server + "/fonts/ibm-plex-mono-latin-400-normal.woff2")
+    assert font.headers["Content-Type"] == "font/woff2"
+    assert font.read(4) == b"wOF2"

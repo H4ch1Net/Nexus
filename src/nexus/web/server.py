@@ -15,6 +15,11 @@ from typing import Any, Callable, Dict
 from nexus import __version__
 
 STATIC_DIR = Path(__file__).parent / "static"
+
+# Platform mime tables are inconsistent for these; pin the ones the UI ships.
+for _ext, _type in ((".woff2", "font/woff2"), (".svg", "image/svg+xml"),
+                    (".js", "text/javascript"), (".css", "text/css")):
+    mimetypes.add_type(_type, _ext)
 MAX_BODY = 2 * 1024 * 1024  # 2 MiB request cap
 
 

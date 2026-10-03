@@ -25,6 +25,7 @@ Issues = "https://github.com/H4ch1Net/Nexus/issues"
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+docs = ["playwright>=1.40"]
 
 [project.scripts]
 nexus = "nexus.cli:cli"

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 38 38" width="152" height="152">
+  <rect x="0" y="0" width="6" height="6" rx="0.75" fill="#ECE9E0"/>
+  <rect x="8.5" y="0.5" width="5" height="5" rx="0.75" fill="none" stroke="#45433D" stroke-width="1"/>
+  <rect x="16.5" y="0.5" width="5" height="5" rx="0.75" fill="none" stroke="#45433D" stroke-width="1"/>
+  <rect x="24.5" y="0.5" width="5" height="5" rx="0.75" fill="none" stroke="#45433D" stroke-width="1"/>
+  <rect x="32" y="0" width="6" height="6" rx="0.75" fill="#ECE9E0"/>
+  <rect x="0" y="8" width="6" height="6" rx="0.75" fill="#ECE9E0"/>
+  <rect x="8" y="8" width="6" height="6" rx="0.75" fill="#F25A1A"/>
+  <rect x="16.5" y="8.5" width="5" height="5" rx="0.75" fill="none" stroke="#45433D" stroke-width="1"/>
+  <rect x="24.5" y="8.5" width="5" height="5" rx="0.75" fill="none" stroke="#45433D" stroke-width="1"/>
+  <rect x="32" y="8" width="6" height="6" rx="0.75" fill="#ECE9E0"/>
+  <rect x="0" y="16" width="6" height="6" rx="0.75" fill="#ECE9E0"/>
+  <rect x="8.5" y="16.5" width="5" height="5" rx="0.75" fill="none" stroke="#45433D" stroke-width="1"/>
+  <rect x="16" y="16" width="6" height="6" rx="0.75" fill="#F25A1A"/>
+  <rect x="24.5" y="16.5" width="5" height="5" rx="0.75" fill="none" stroke="#45433D" stroke-width="1"/>
+  <rect x="32" y="16" width="6" height="6" rx="0.75" fill="#ECE9E0"/>
+  <rect x="0" y="24" width="6" height="6" rx="0.75" fill="#ECE9E0"/>
+  <rect x="8.5" y="24.5" width="5" height="5" rx="0.75" fill="none" stroke="#45433D" stroke-width="1"/>
+  <rect x="16.5" y="24.5" width="5" height="5" rx="0.75" fill="none" stroke="#45433D" stroke-width="1"/>
+  <rect x="24" y="24" width="6" height="6" rx="0.75" fill="#F25A1A"/>
+  <rect x="32" y="24" width="6" height="6" rx="0.75" fill="#ECE9E0"/>
+  <rect x="0" y="32" width="6" height="6" rx="0.75" fill="#ECE9E0"/>
+  <rect x="8.5" y="32.5" width="5" height="5" rx="0.75" fill="none" stroke="#45433D" stroke-width="1"/>
+  <rect x="16.5" y="32.5" width="5" height="5" rx="0.75" fill="none" stroke="#45433D" stroke-width="1"/>
+  <rect x="24.5" y="32.5" width="5" height="5" rx="0.75" fill="none" stroke="#45433D" stroke-width="1"/>
+  <rect x="32" y="32" width="6" height="6" rx="0.75" fill="#ECE9E0"/>
+</svg>

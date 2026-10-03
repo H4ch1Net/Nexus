@@ -6,9 +6,12 @@ group. All real work lives in the module packages under ``nexus.modules`` and
 """
 from __future__ import annotations
 
+import os
+
 import click
 
 from nexus import __version__
+from nexus.core import render
 from nexus.core.config import load_config
 from nexus.modules.cryptography.commands import crypt
 from nexus.modules.enumeration.commands import enum
@@ -16,8 +19,14 @@ from nexus.modules.log_analysis.commands import log
 from nexus.modules.osint.commands import osint
 from nexus.web.commands import serve
 
-_BANNER = """\
-nexus — local-first toolkit for cryptography, OSINT, logs, and enumeration.
+# "\b" stops Click from re-wrapping the lockup; colors drop out when piped.
+_BANNER = "\b\n" + render.lockup([
+    f"{render.c('nexus', 'bold')} {render.note(__version__)}",
+    "offline analysis instrument",
+    render.note("crypt · enum · osint · log · serve"),
+]) + """
+
+Local-first toolkit for cryptography, OSINT, logs, and enumeration.
 Runs entirely offline. No accounts, no telemetry.
 """
 
@@ -29,6 +38,9 @@ Runs entirely offline. No accounts, no telemetry.
 @click.pass_context
 def cli(ctx, config):
     ctx.obj = load_config(config)
+    if os.environ.get("NEXUS_FORCE_COLOR") is not None and os.environ.get("NO_COLOR") is None:
+        # Click strips ANSI from non-TTY output; keep it for `| less -R` and captures.
+        ctx.color = True
 
 
 cli.add_command(crypt)
