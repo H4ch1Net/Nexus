@@ -102,19 +102,20 @@ def detect_encoders(text: str, data: bytes) -> List[Dict]:
         if padding <= 2 and (len(text_stripped) % 4 == 0 or padding > 0):
             candidates.append({"name": "base64", "score": 0.80 + 0.20 * base64_match, "category": "encoder"})
     
-    # Base64URL detection
+    # Base64URL detection (requires the URL-safe distinguishing chars)
     base64url_match = _charset_match(text_stripped, BASE64URL_CHARS)
-    if base64url_match > 0.95 and '-' in text_stripped or '_' in text_stripped:
+    if base64url_match > 0.95 and len(text_stripped) >= 8 and ('-' in text_stripped or '_' in text_stripped):
         candidates.append({"name": "base64url", "score": 0.78 + 0.22 * base64url_match, "category": "encoder"})
     
-    # Base32 detection
+    # Base32 detection (canonical base32 is padded to a multiple of 8 chars)
     base32_match = _charset_match(text_stripped, BASE32_CHARS)
-    if base32_match > 0.95:
+    if base32_match > 0.95 and (len(text_stripped) % 8 == 0 or "=" in text_stripped):
         candidates.append({"name": "base32", "score": 0.75 + 0.25 * base32_match, "category": "encoder"})
-    
+
     # Base32hex detection
     base32hex_match = _charset_match(text_stripped, BASE32HEX_CHARS)
-    if base32hex_match > 0.95 and any(c in text_stripped for c in "0123456789"):
+    if (base32hex_match > 0.95 and (len(text_stripped) % 8 == 0 or "=" in text_stripped)
+            and any(c in text_stripped for c in "0123456789")):
         candidates.append({"name": "base32hex", "score": 0.73 + 0.27 * base32hex_match, "category": "encoder"})
     
     # Crockford Base32
@@ -426,6 +427,25 @@ def detect(inline_input: str) -> dict:
     # Detect high-entropy ciphertext
     candidates.extend(detect_high_entropy_ciphertext(data, ent, pr))
     
+    # When the raw input is clearly an encoding/container, the IC-based
+    # classical-cipher guesses are analyzing the encoding layer rather than any
+    # real plaintext, so drop that noise. Structural ciphers (baconian, ADFGX,
+    # polybius) carry no "ic" param and are kept.
+    # Require real encoding evidence: a high-confidence encoder *and* at least
+    # one non-letter character. All-uppercase ciphertext is a subset of several
+    # base-N charsets, so without this guard we would wrongly suppress cipher
+    # candidates for a plain monoalphabetic ciphertext.
+    has_non_letter = any(not ch.isalpha() for ch in inline_input.strip())
+    strong_encoding = has_non_letter and any(
+        c.get("category") in ("encoder", "container", "armor") and c["score"] >= 0.9
+        for c in candidates
+    )
+    if strong_encoding:
+        candidates = [
+            c for c in candidates
+            if not (c.get("category") == "classical_cipher" and "ic" in c.get("params", {}))
+        ]
+
     # Remove duplicates and sort by score
     seen = set()
     unique_candidates = []

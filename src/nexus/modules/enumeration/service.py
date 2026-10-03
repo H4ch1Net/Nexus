@@ -157,10 +157,11 @@ def _score_snippet(code: str) -> list[dict]:
                 hits += 1
         if raw == 0:
             continue
-        max_weight = sum(w for w, _ in rules)
-        # Confidence blends how much signature weight matched with how many
-        # distinct rules fired, so a single strong keyword can't dominate.
-        confidence = round(min(0.98, 0.15 + 0.75 * (raw / max_weight) + 0.05 * hits), 3)
+        # Confidence saturates on the absolute matched weight plus the number
+        # of distinct rules that fired. Using absolute weight (rather than a
+        # ratio against each language's own rule total) avoids rewarding
+        # languages that simply define fewer signatures.
+        confidence = round(min(0.98, 0.10 + 0.11 * raw + 0.05 * hits), 3)
         results.append({
             "language": lang,
             "confidence": confidence,
